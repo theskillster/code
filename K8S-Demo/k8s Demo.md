@@ -13,3 +13,13 @@ create the webapp deployment+services file
     use container image nanajanashia/k8s-demo-app
 
 pass env variables and secrets into the deployment files
+
+minikube start --driver docker
+alias kubectl="minikube kubectl --"
+kubectl get pod
+kubectl apply -f mongo-config.yaml
+kubectl apply -f mongo-secret.yaml
+kubectl apply -f mongo.yaml
+
+
+
