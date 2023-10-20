@@ -20,6 +20,9 @@ kubectl get pod
 kubectl apply -f mongo-config.yaml
 kubectl apply -f mongo-secret.yaml
 kubectl apply -f mongo.yaml
-
-
+kubectl apply -f webapp.yaml
+    note you need a vm cpu that supports avx (change vm CPU to host)
+minikube IP to get the cluster IP- this may not be pass through to the host though
+    minikube service webapp-service --url
+    
 
