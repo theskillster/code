@@ -85,3 +85,29 @@ print(int(bodymassindex)) #solution wants an int conversation and not a rounding
 print(round(8 / 3, 2)) #rounds the resulting float to 2 decimal places
 print(8 // 3) 
 #floor division which this drops the decimal places and results in a integar data type
+
+result = 4 / 2
+result /= 2 #divides itself by 2
+print (result)
+score = 0
+score += 1 # adds 1 to itself
+
+#mix data types in print function using f-string
+score = 0
+height = 1.8
+isWinning = True
+
+print(f"Your Score is {score} and your height is {height} you are winning is {isWinning}")
+
+# Lesson 7 - Day 2 - Life in Weeks
+
+age = input()
+# 🚨 Don't change the code above 👆
+# Write your code below this line 👇
+age = int(age)
+yearsleft = 90 - age
+# years = 90 - int(age)
+weeksleft = yearsleft * 52
+print(f"You have {weeksleft} weeks left.")
+#Assuming max age of 90
+
