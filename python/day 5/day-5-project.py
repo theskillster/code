@@ -19,6 +19,7 @@ for i in range(nr_letters): # while cycling the range of value (nr_letters):
   # Essentially doing:
     # random_char = random.choice(letters)
     # password += random_char
+  # You could also use password_list.append() to update the list 
 for i in range(nr_numbers):
   result += [random.choice(numbers)]
 for i in range(nr_symbols):
@@ -26,7 +27,7 @@ for i in range(nr_symbols):
 
 random.shuffle(result) #This shuffles the items in the list (result)
 rando_result = ''.join(result) # ''.join(list) concatenates the list into a single string removing the [] brackets.
-print(rando_result)
+print(f"Your password is: {rando_result}")
 
 # Shuffle output answer from course content.
 # password = ""
