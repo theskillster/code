@@ -35,3 +35,25 @@ for char in chosen_word:
         print("Matched")
     else: 
         print ("Wrong")
+
+
+#from replit=day7-start
+
+
+correct = 0
+failed = 0
+
+for letter in chosen_word:
+  if letter == guess:
+    print ("Right")
+    correct += 1
+  else:
+    print ("Wrong")
+    failed += 1
+
+    
+# print(number_of_chars)
+print(f"The random word was {chosen_word}.")
+print(f"you got {correct} correct letters.")
+print(f"you got {failed} incorrect letters.")
+print("Your score is", (correct - failed))
