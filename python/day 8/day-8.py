@@ -113,10 +113,16 @@ paint_calc(height=test_h, width=test_w, cover=coverage)
 
 
 # Write your code below this line 👇
-
-
-
-
+def prime_checker(number):
+    prime_number = False
+    while not prime_number:
+        for a in range(number): # and a > 1:
+            if n % a == 0 and a > 1:
+                prime_number = True
+                print((n % a))
+                print(a)
+            
+    print(prime_number)
 
 # Write your code above this line 👆
     
