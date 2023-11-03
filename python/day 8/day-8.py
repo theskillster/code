@@ -113,29 +113,43 @@ paint_calc(height=test_h, width=test_w, cover=coverage)
 
 
 # Write your code below this line 👇
-def prime_checker(number):
-    prime_number = False
-    while not prime_number:
-        for a in range(number): # and a > 1:
-            if n % a == 0 and a > 1:
-                prime_number = True
-                print((n % a))
-                print(a)
+# def prime_checker(number):
+#     prime_number = False
+#     while not prime_number:
+#         for a in range(number): # and a > 1:
+#             if a > 1:
+#                 if n % a == 0 and a > 1:
+#                     prime_number = True
+#                     print((n % a))
+#                     print(a)
             
-    print(prime_number)
+#     print(prime_number)
 
-# Write your code above this line 👆
+# # Write your code above this line 👆
     
-#Do NOT change any of the code below👇
+# #Do NOT change any of the code below👇
+# n = int(input()) # Check this number
+# prime_checker(number=n)
+
+
+
+
+# Instructor Solution
+
+def prime_checker (number):
+    is_prime = True
+    for i in range (2,number): #start the range from 2 to number)
+        if number % i == 0:
+            is_prime = False
+    if is_prime:
+        print("It's a prime number.")
+    else:
+        print("It's not a prime number.")   
+
+
+# Your code above this line 👆
 n = int(input()) # Check this number
 prime_checker(number=n)
-
-
-
-
-
-
-
 
 
 
