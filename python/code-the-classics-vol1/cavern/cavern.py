@@ -135,7 +135,7 @@ class Orb(CollideActor):
                     self.image - "trap" + str(self.trapped_enemy_type) + \
                     str((self.timer //4) % 8)
                 else:
-                    self.image = "orb" + str(3 + (((self.timer -9) // 8) $ 4))
+                    self.image = "orb" + str(3 + (((self.timer -9) // 8) % 4))
 
 class Bolt(CollideActor):
     SPEED = 7
@@ -392,4 +392,4 @@ class Robot(GravityActor):
                 orb.trapped_enemy_trap = self.type
                 game.play_sound("trap", 4)
                 break
-                
+
