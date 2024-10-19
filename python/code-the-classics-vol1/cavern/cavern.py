@@ -372,5 +372,24 @@ class Robot(GravityActor):
                     self.fire_timer = 0
                     break
         
-        
+        if self.timer >= 12:
+            fire_probablity = game.fire_probablity()
+            if game.player and self.top < game.player.bottom and \
+                self.bottom > game.player.top:
+                fire_probablity *= 10
+            if random() < fire_probablity:
+                self.fire_timer = 0
+                game.play_sound("laser", 4)
 
+        elif self.fire_timer == 8:
+            game.bolts.appent(Bolt((self.x + self.direction_x * 20, self.y - 38),self.direction_x))
+
+
+        for orb in game.orbs:
+            if orb.trapped_enemy_type == None and self.collidepoint(orb.centre):
+                self.alive = False 
+                orb.floating = True
+                orb.trapped_enemy_trap = self.type
+                game.play_sound("trap", 4)
+                break
+                
