@@ -1,0 +1,6 @@
+
+npm i express
+npm i nodemon -D
+npm i mongodb
+npm i mongoose
+"rangav.vscode-thunder-client"
