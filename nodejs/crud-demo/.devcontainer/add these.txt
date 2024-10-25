@@ -4,3 +4,7 @@ npm i nodemon -D
 npm i mongodb
 npm i mongoose
 "rangav.vscode-thunder-client"
+
+# Execute NodeJS (not NPM script) to handle SIGTERM and SIGINT signals.
+CMD ["node", "./src/index.js"]
+
