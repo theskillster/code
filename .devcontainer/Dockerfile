@@ -14,8 +14,8 @@ RUN echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
 ENV DEVCONTAINER=true
 # Run NPM installs - saj
 WORKDIR /app
-COPY ../package.json .
+COPY ../nodejs/crud-demo/package.json .
 RUN npm install
-COPY .. .
+COPY ../nodejs/crud-demo/ .
 EXPOSE 5173
 CMD ["npm", "run", "dev"]
