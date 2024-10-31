@@ -13,6 +13,8 @@
 				"esbenp.prettier-vscode",
 				"ms-azuretools.vscode-docker"
 			]
-		}
+		},
+		"forwardPorts": [3000, 3001],
+		"appPort": [ 3000, "8921:5000" ]
 	}
 }
