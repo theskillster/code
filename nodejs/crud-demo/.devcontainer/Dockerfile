@@ -13,5 +13,9 @@ RUN echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
 # Set `DEVCONTAINER` environment variable to help with orientation
 ENV DEVCONTAINER=true
 # Run NPM installs - saj
-WORKDIR /workspaces/code/nodejs/crud-demo
+WORKDIR /app
+COPY ../package.json .
 RUN npm install
+COPY .. .
+EXPOSE 5173
+CMD ["npm", "run", "dev"]
