@@ -1,0 +1,14 @@
+id: clone_vm
+namespace: company.team
+
+tasks:
+  - id: clone
+    type: io.kestra.plugin.proxmox.vm.Clone
+    host: "{{ secret('PROXMOX_HOST') }}"
+    username: "{{ secret('PROXMOX_USERNAME') }}"
+    password: "{{ secret('PROXMOX_PASSWORD') }}"
+    node: pve
+    vmName: template-vm
+    newId: 201
+    newName: cloned-vm
+    full: true
