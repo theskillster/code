@@ -220,3 +220,41 @@ If you want to change something, the friendliest entry points are:
 - **Change player speed or jump height** → tweak `MOVE` / `JUMP_V` / `GRAV`
 - **Add a new sound** → add a `sfx.mySound = () => tone(...)` line
 - **Restyle the game** → edit the colors in `draw()` or `main.css`
+
+---
+
+## 10. Two levels, keys & gates, and flying volts
+
+The game grew from one level into a small campaign. The level data moved into a
+`LEVELS` object — one entry per level with its name, width, flag position,
+checkpoints, and a `build()` function that calls the same `ground()` / `plat()` /
+`coin()` helpers you already know:
+
+```js
+const LEVELS = {
+  1: { name: "Neon Meadows", width: 5120, flagX: 4860, build() { ... } },
+  2: { name: "The Voltage Vault", width: 4600, flagX: 4480, build() { ... } },
+};
+```
+
+`loadLevel(n)` wipes the world arrays and calls `LEVELS[n].build()`, then points
+`levelW`, `flag.x`, `CHECKPOINTS` and the visual `theme` at that level's values.
+Beat Level 1 and `win()` hands over to `nextLevel()` instead of "play again" —
+score and lives carry over, coins and the clock reset.
+
+**Keys & gates** (the new feature): a gate is a solid wall on the ground that
+gets skipped by collision until its key is collected. Keys are glowing circles
+you touch like coins; collecting one unlocks every gate with the same `label`:
+
+```js
+key(2575, 330, "A");      // this key...
+gate(2700, 300, "A");     // ...unlocks this gate
+```
+
+When a gate opens, an animation plays (the slats slide up and fade) and a new
+`sfx.gate()` buzzes. The HUD gained a 🔒/🔑 indicator and a Level readout.
+
+**Flyers** are a second enemy kind. They patrol horizontally like walkers, but
+their `y` also bobs on a sine wave (`e.y = e.baseY + sin(animTime * speed) * amp`),
+which makes gaps and key perches feel alive. They're drawn differently (a little
+lightning volt) via a `kind` field — same stomp rules as walkers.

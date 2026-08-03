@@ -1,4 +1,6 @@
-// OpenCode frontend — a small 2D neon platformer ("Neon Runner")
+// OpenCode frontend — "Neon Runner": a 2D neon platformer with two levels.
+// Level 1: Neon Meadows (original). Level 2: The Voltage Vault — flying volts,
+// spike landings, faster patrollers, and locked gates that need keys.
 (() => {
   "use strict";
 
@@ -47,6 +49,9 @@
     hudLives: $("hud-lives"),
     hudBest: $("hud-best"),
     hudTime: $("hud-time"),
+    hudLevel: $("hud-level"),
+    hudKey: $("hud-key"),
+    levelBadge: $("level-name-badge"),
   };
 
   // ---------------------------------------------------------------------------
@@ -85,10 +90,16 @@
       tone(880, 0.08, "sine", 0.12);
       tone(1318, 0.12, "sine", 0.12, 0, 0.07);
     },
+    key: () => {
+      tone(660, 0.1, "sine", 0.13);
+      tone(990, 0.16, "sine", 0.13, 0, 0.09);
+    },
+    gate: () => tone(200, 0.5, "sawtooth", 0.1, 360),
     stomp: () => tone(220, 0.12, "square", 0.13, -90),
     hurt: () => tone(340, 0.3, "sawtooth", 0.14, -200),
     pause: () => tone(520, 0.08, "sine", 0.09),
     win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, "triangle", 0.15, 0, i * 0.11)),
+    level: () => [392, 523, 659, 784].forEach((f, i) => tone(f, 0.14, "triangle", 0.14, 0, i * 0.1)),
     over: () => [392, 311, 233, 155].forEach((f, i) => tone(f, 0.28, "sawtooth", 0.12, 0, i * 0.16)),
   };
 
@@ -152,75 +163,203 @@
   // ---------------------------------------------------------------------------
   const GROUND_H = 60;
   const GROUND_Y = H - GROUND_H;
-  const LEVEL_W = 5120;
+  const LEVEL_MAX_W = 5120; // widest level, used for the starfield layout
 
   const platforms = [];
   const coins = [];
   const enemies = [];
   const spikes = [];
-  const flag = { x: 4860 };
+  const keyItems = [];
+  const gates = [];
+  const flag = { x: 0 };
 
   const ground = (x, w) => platforms.push({ x, y: GROUND_Y, w, h: GROUND_H, kind: "ground" });
   const plat = (x, y, w, h = 26) => platforms.push({ x, y, w, h, kind: "plat" });
   const coin = (x, y) => coins.push({ x, y, r: 11, taken: false });
   const enemy = (x, min, max, speed = 72) =>
-    enemies.push({ x, y: GROUND_Y - 40, w: 44, h: 40, min, max, dir: 1, speed, alive: true });
+    enemies.push({ x, y: GROUND_Y - 40, w: 44, h: 40, min, max, dir: 1, speed, alive: true, kind: "walker" });
+  const flyer = (x, min, max, baseY, amp, bobSpeed, phase = 0) =>
+    enemies.push({
+      x,
+      y: baseY,
+      w: 34,
+      h: 26,
+      min,
+      max,
+      dir: 1,
+      speed: 36,
+      alive: true,
+      kind: "flyer",
+      baseY,
+      amp,
+      bobSpeed,
+      phase,
+    });
   const spike = (x, w = 48) => spikes.push({ x, y: GROUND_Y - 16, w, h: 16 });
+  const key = (x, y, label) => keyItems.push({ x, y, r: 12, label, taken: false });
+  const gate = (x, h, label) => gates.push({ x, y: GROUND_Y - h, w: 14, h, label, opened: false, opening: 0 });
   const coinArc = (cx, cy, n) => {
     for (let i = 0; i < n; i++) coin(cx + i * 34, cy - Math.sin((i / (n - 1)) * Math.PI) * 46);
   };
 
-  // Ground segments with gaps, floating platforms, coins, spikes and patrolling enemies.
-  ground(0, 620);
-  plat(680, 420, 130);
-  ground(800, 420);
-  coinArc(690, 400, 3);
+  // Per-level visual themes (palettes switch in loadLevel).
+  const THEMES = {
+    1: {
+      sky: ["#0b1020", "#16224a", "#1e2f5c"],
+      star: "#cbd5e1",
+      moon: "#e2e8f0",
+      hillA: "#1a2342",
+      hillB: "#141b33",
+      groundTop: "#1f2a44",
+      groundBody: "#33455f",
+      groundEdge: "#22d3ee",
+      groundGlow: "rgba(34,211,238,0.18)",
+      platBody: "#0d9488",
+      platTop: "#5eead4",
+      flag: "#38bdf8",
+      gate: "#e879f9",
+    },
+    2: {
+      sky: ["#190a33", "#30104f", "#233464"],
+      star: "#e9d5ff",
+      moon: "#f5f3ff",
+      hillA: "#231a42",
+      hillB: "#171030",
+      groundTop: "#241b40",
+      groundBody: "#3a2c5c",
+      groundEdge: "#e879f9",
+      groundGlow: "rgba(232,121,249,0.16)",
+      platBody: "#7e22ce",
+      platTop: "#e879f9",
+      flag: "#f472b6",
+      gate: "#e879f9",
+    },
+  };
 
-  coinArc(1250, 330, 3);
-  plat(1260, 360, 120);
-  ground(1380, 480);
-  coin(1300, 340);
-  coin(1335, 320);
-  coin(1370, 340);
-  spike(1660, 46);
+  const LEVELS = {
+    1: {
+      name: "Neon Meadows",
+      width: 5120,
+      flagX: 4860,
+      checkpoints: [500, 1000, 1500, 2100, 2700, 3300, 4000, 4700],
+      build() {
+        // Ground segments with gaps, floating platforms, coins, spikes and
+        // patrolling enemies.
+        ground(0, 620);
+        plat(680, 420, 130);
+        ground(800, 420);
+        coinArc(690, 400, 3);
 
-  ground(1980, 520);
-  plat(2140, 380, 120);
-  coinArc(2150, 360, 3);
+        coinArc(1250, 330, 3);
+        plat(1260, 360, 120);
+        ground(1380, 480);
+        coin(1300, 340);
+        coin(1335, 320);
+        coin(1370, 340);
+        spike(1660, 46);
 
-  ground(2620, 520);
-  plat(2520, 350, 110);
-  coin(2530, 330);
-  coin(2575, 310);
-  plat(2700, 400, 130);
-  coinArc(2710, 380, 3);
-  spike(2840, 44);
+        ground(1980, 520);
+        plat(2140, 380, 120);
+        coinArc(2150, 360, 3);
 
-  ground(3260, 560);
-  plat(3400, 370, 120);
-  coinArc(3410, 350, 3);
-  spike(3520, 44);
+        ground(2620, 520);
+        plat(2520, 350, 110);
+        coin(2530, 330);
+        coin(2575, 310);
+        plat(2700, 400, 130);
+        coinArc(2710, 380, 3);
+        spike(2840, 44);
 
-  ground(3940, 600);
-  plat(4020, 350, 120);
-  coinArc(4030, 330, 3);
-  spike(4420, 50);
+        ground(3260, 560);
+        plat(3400, 370, 120);
+        coinArc(3410, 350, 3);
+        spike(3520, 44);
 
-  ground(4660, 460);
-  coinArc(4680, 420, 3);
-  coinArc(4780, 380, 4);
+        ground(3940, 600);
+        plat(4020, 350, 120);
+        coinArc(4030, 330, 3);
+        spike(4420, 50);
 
-  enemy(350, 120, 580, 60);
-  enemy(1050, 830, 1180, 75);
-  enemy(1520, 1450, 1610, 65);
-  enemy(2350, 2040, 2460, 80);
-  enemy(2920, 2700, 2810, 70);
-  enemy(3450, 3320, 3500, 70);
-  enemy(4300, 4000, 4390, 72);
+        ground(4660, 460);
+        coinArc(4680, 420, 3);
+        coinArc(4780, 380, 4);
 
-  const totalCoins = coins.length;
-  // Respawn x-positions, each verified to sit on a ground segment (not in a gap).
-  const CHECKPOINTS = [500, 1000, 1500, 2100, 2700, 3300, 4000, 4700];
+        enemy(350, 120, 580, 60);
+        enemy(1050, 830, 1180, 75);
+        enemy(1520, 1450, 1610, 65);
+        enemy(2350, 2040, 2460, 80);
+        enemy(2920, 2700, 2810, 70);
+        enemy(3450, 3320, 3500, 70);
+        enemy(4300, 4000, 4390, 72);
+      },
+    },
+    2: {
+      name: "The Voltage Vault",
+      width: 4600,
+      flagX: 4480,
+      checkpoints: [430, 950, 1660, 2120, 2560, 3000, 3520, 4300],
+      build() {
+        // Tighter, meaner: spikes right after landings, faster patrollers,
+        // hovering "volt" flyers, and two locked gates that need their keys.
+        ground(0, 470);
+        plat(520, 400, 110);
+        plat(660, 330, 110);
+        coinArc(670, 310, 3);
+
+        ground(900, 380);
+        spike(990, 44);
+        coinArc(950, 430, 3);
+        enemy(1080, 920, 1240, 95);
+
+        plat(1330, 380, 110);
+        coin(1340, 360);
+        coin(1380, 340);
+
+        ground(1540, 360);
+        spike(1630, 44);
+        flyer(1910, 1905, 1995, 390, 40, 2.0, 0); // guards the gap
+
+        ground(2000, 400);
+        spike(2100, 44);
+        enemy(2160, 2050, 2340, 100);
+        coin(2280, 430);
+
+        ground(2520, 300);
+        plat(2530, 350, 90);
+        key(2575, 330, "A");
+        flyer(2545, 2530, 2620, 300, 35, 1.6, 2); // guards key A
+        gate(2700, 300, "A");
+        coin(2660, 430);
+
+        ground(2900, 420);
+        spike(2990, 44);
+        enemy(3060, 2960, 3260, 105);
+        coinArc(3100, 400, 3);
+
+        plat(3340, 370, 120);
+        coinArc(3350, 350, 3);
+
+        ground(3460, 320);
+        plat(3470, 370, 100);
+        key(3520, 350, "B");
+        flyer(3490, 3470, 3570, 320, 35, 1.7, 4); // guards key B
+        gate(3600, 300, "B");
+        spike(3680, 44);
+        coin(3700, 430);
+
+        plat(3820, 400, 110);
+        plat(3960, 340, 100);
+        coinArc(3830, 380, 3);
+        coin(3970, 320);
+
+        ground(4120, 480);
+        spike(4250, 50);
+        enemy(4330, 4300, 4420, 110);
+        coinArc(4360, 420, 3);
+        coinArc(4440, 380, 4);
+      },
+    },
+  };
 
   // ---------------------------------------------------------------------------
   // Game state
@@ -250,6 +389,7 @@
   let state = "menu"; // menu | playing | paused | win | over
   let score = 0;
   let coinCount = 0;
+  let keyCount = 0;
   let lives = 3;
   let time = 0;
   let best = parseInt(lsGet("opencode-best") || "0", 10) || 0;
@@ -257,10 +397,18 @@
   let animTime = 0;
   let overlayAction = null;
 
+  // Level bookkeeping (filled in by loadLevel).
+  let currentLevel = 1;
+  const totalLevels = 2;
+  let levelW = LEVEL_MAX_W;
+  let totalCoins = 0;
+  let CHECKPOINTS = [];
+  let theme = THEMES[1];
+
   const particles = [];
   const stars = [];
   for (let i = 0; i < 70; i++) {
-    stars.push({ x: (i * 137.5) % LEVEL_W, y: (i * 61.7) % 240, r: (i % 3) + 0.7 });
+    stars.push({ x: (i * 137.5) % LEVEL_MAX_W, y: (i * 61.7) % 240, r: (i % 3) + 0.7 });
   }
   const clouds = [];
   for (let i = 0; i < 8; i++) {
@@ -357,26 +505,81 @@
     els.overlay.classList.add("hidden");
   }
 
-  function start() {
-    ensureAudio();
-    keys.jumpPressed = false; // don't leak a jump held during the menu into the run
-    score = 0;
+  function loadLevel(n) {
+    currentLevel = n;
+    const L = LEVELS[n];
+    platforms.length = 0;
+    coins.length = 0;
+    enemies.length = 0;
+    spikes.length = 0;
+    keyItems.length = 0;
+    gates.length = 0;
+    particles.length = 0;
     coinCount = 0;
-    lives = 3;
+    keyCount = 0;
     time = 0;
+    L.build();
+    levelW = L.width;
+    flag.x = L.flagX;
+    totalCoins = coins.length;
+    CHECKPOINTS = L.checkpoints;
+    theme = THEMES[n];
+  }
+
+  function resetPlayer() {
     player.x = 80;
     player.y = GROUND_Y - 46;
     player.vx = 0;
     player.vy = 0;
+    player.onGround = false;
+    player.coyote = 0;
+    player.jumpBuffer = 0;
     player.invuln = 0;
     checkpoint.x = 80;
     checkpoint.y = GROUND_Y - 46;
-    coins.forEach((c) => (c.taken = false));
-    enemies.forEach((e) => (e.alive = true));
-    particles.length = 0;
     camera.x = 0;
+  }
+
+  // Fresh full run (starts at level 1).
+  function start() {
+    ensureAudio();
+    keys.jumpPressed = false; // don't leak a jump held during the menu into the run
+    score = 0;
+    lives = 3;
+    loadLevel(1);
+    resetPlayer();
     state = "playing";
     hideOverlay();
+  }
+
+  // Begin playing the already-loaded level (used by the level-intro overlay).
+  function enterLevel() {
+    ensureAudio();
+    keys.jumpPressed = false;
+    state = "playing";
+    hideOverlay();
+  }
+
+  // Jump straight to a specific level (dev/testing hook).
+  function playLevel(n) {
+    ensureAudio();
+    loadLevel(n);
+    resetPlayer();
+    state = "playing";
+    hideOverlay();
+  }
+
+  function nextLevel() {
+    loadLevel(currentLevel + 1);
+    resetPlayer();
+    state = "menu";
+    sfx.level();
+    showOverlay(
+      `Level ${currentLevel} — ${LEVELS[currentLevel].name}`,
+      "New hazards: flying volts, spike landings, faster patrollers…<br>and <strong>locked gates</strong> that only open when you find their key.<br>Score and lives carry over from Level 1.",
+      "Enter ▶",
+      enterLevel
+    );
   }
 
   function togglePause() {
@@ -428,12 +631,22 @@
     state = "win";
     sfx.win();
     confetti();
-    showOverlay(
-      "Level complete! 🏁",
-      `Score <strong>${score}</strong> (incl. time bonus +${bonus}) · Coins ${coinCount}/${totalCoins} · Time ${fmtTime(time)}`,
-      "Play again",
-      start
-    );
+    const level = LEVELS[currentLevel];
+    if (currentLevel < totalLevels) {
+      showOverlay(
+        `Level ${currentLevel} complete! 🏁`,
+        `Score <strong>${score}</strong> (incl. time bonus +${bonus}) · Coins ${coinCount}/${totalCoins} · Time ${fmtTime(time)}`,
+        "Next level ▶",
+        nextLevel
+      );
+    } else {
+      showOverlay(
+        "You beat the game! 🏆",
+        `Final score <strong>${score}</strong> (incl. bonuses) · Coins ${coinCount}/${totalCoins} · Time ${fmtTime(time)}<br>Best <strong>${best}</strong>`,
+        "Play again",
+        start
+      );
+    }
   }
 
   function gameOver() {
@@ -441,7 +654,7 @@
     sfx.over();
     showOverlay(
       "Game over",
-      `You ran out of lives. Score <strong>${score}</strong> · Best <strong>${best}</strong>`,
+      `You ran out of lives on Level ${currentLevel}. Score <strong>${score}</strong> · Best <strong>${best}</strong>`,
       "Try again",
       start
     );
@@ -463,7 +676,7 @@
     if (keys.right) player.vx = MOVE;
     if (player.vx !== 0) player.facing = player.vx > 0 ? 1 : -1;
     player.x += player.vx * dt;
-    player.x = Math.max(0, Math.min(player.x, LEVEL_W - player.w));
+    player.x = Math.max(0, Math.min(player.x, levelW - player.w));
     for (const p of platforms) {
       if (overlap(player, p)) {
         if (player.vx > 0) player.x = p.x - player.w;
@@ -512,6 +725,17 @@
       if (player.vy === 0) break;
     }
 
+    // Gates act as solid walls until their key unlocks them.
+    for (const g of gates) {
+      if (g.opened) continue;
+      if (overlap(player, g)) {
+        const mid = player.x + player.w / 2;
+        if (mid < g.x + g.w / 2) player.x = g.x - player.w;
+        else player.x = g.x + g.w;
+        player.vx = 0;
+      }
+    }
+
     // Run animation.
     if (player.onGround && Math.abs(player.vx) > 0) player.run += dt * 12;
     else player.run += dt * 4;
@@ -527,7 +751,28 @@
       }
     }
 
-    // Enemies (patrol + stomp).
+    // Keys unlock their matching gates.
+    for (const k of keyItems) {
+      if (!k.taken && circleRect(k.x, k.y, k.r, player)) {
+        k.taken = true;
+        score += 100;
+        keyCount++;
+        sfx.key();
+        burst(k.x, k.y, 14);
+        for (const g of gates) {
+          if (!g.opened && g.label === k.label) {
+            g.opened = true;
+            sfx.gate();
+          }
+        }
+      }
+    }
+    // Gate opening animation.
+    for (const g of gates) {
+      if (g.opened && g.opening < 1) g.opening = Math.min(1, g.opening + dt * 2.2);
+    }
+
+    // Enemies (patrol + stomp). Flyers also bob up and down.
     for (const e of enemies) {
       if (!e.alive) continue;
       e.x += e.dir * e.speed * dt;
@@ -538,6 +783,9 @@
       if (e.x + e.w >= e.max) {
         e.x = e.max - e.w;
         e.dir = -1;
+      }
+      if (e.kind === "flyer") {
+        e.y = e.baseY + Math.sin(animTime * e.bobSpeed + e.phase) * e.amp;
       }
       if (player.invuln > 0) continue;
       if (overlap(player, e)) {
@@ -581,7 +829,7 @@
 
   function updateCamera() {
     const target = player.x + player.w / 2 - W * 0.4;
-    camera.x = Math.max(0, Math.min(target, LEVEL_W - W));
+    camera.x = Math.max(0, Math.min(target, levelW - W));
   }
 
   // ---------------------------------------------------------------------------
@@ -589,14 +837,14 @@
   // ---------------------------------------------------------------------------
   function drawBackground() {
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#0b1020");
-    g.addColorStop(0.7, "#16224a");
-    g.addColorStop(1, "#1e2f5c");
+    g.addColorStop(0, theme.sky[0]);
+    g.addColorStop(0.7, theme.sky[1]);
+    g.addColorStop(1, theme.sky[2]);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
     // Stars (parallax 0.15).
-    ctx.fillStyle = "#cbd5e1";
+    ctx.fillStyle = theme.star;
     for (const s of stars) {
       const sx = ((s.x - camera.x * 0.15) % W + W) % W;
       ctx.globalAlpha = 0.35 + 0.3 * Math.sin(animTime * 2 + s.x);
@@ -614,11 +862,11 @@
     glow.addColorStop(1, "rgba(226,232,240,0)");
     ctx.fillStyle = glow;
     ctx.fillRect(moonX - 90, moonY - 90, 180, 180);
-    ctx.fillStyle = "#e2e8f0";
+    ctx.fillStyle = theme.moon;
     ctx.beginPath();
     ctx.arc(moonX, moonY, 26, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#cbd5e1";
+    ctx.fillStyle = theme.star;
     ctx.beginPath();
     ctx.arc(moonX - 10, moonY - 6, 5, 0, Math.PI * 2);
     ctx.fill();
@@ -645,26 +893,26 @@
         ctx.fill();
       }
     };
-    hill(camera.x * 0.25, 420, 130, 260, "#1a2342");
-    hill(camera.x * 0.45, 452, 90, 200, "#141b33");
+    hill(camera.x * 0.25, 420, 130, 260, theme.hillA);
+    hill(camera.x * 0.45, 452, 90, 200, theme.hillB);
   }
 
   function drawPlatforms() {
     for (const p of platforms) {
       if (p.kind === "ground") {
-        ctx.fillStyle = "#1f2a44";
+        ctx.fillStyle = theme.groundTop;
         ctx.fillRect(p.x, p.y + 6, p.w, p.h - 6);
-        ctx.fillStyle = "#33455f";
+        ctx.fillStyle = theme.groundBody;
         ctx.fillRect(p.x, p.y + 10, p.w, p.h - 14);
-        ctx.fillStyle = "#22d3ee";
+        ctx.fillStyle = theme.groundEdge;
         ctx.fillRect(p.x, p.y, p.w, 5);
-        ctx.fillStyle = "rgba(34,211,238,0.18)";
+        ctx.fillStyle = theme.groundGlow;
         ctx.fillRect(p.x, p.y + 5, p.w, 8);
       } else {
-        ctx.fillStyle = "#0d9488";
+        ctx.fillStyle = theme.platBody;
         roundRect(p.x, p.y, p.w, p.h, 8);
         ctx.fill();
-        ctx.fillStyle = "#5eead4";
+        ctx.fillStyle = theme.platTop;
         ctx.fillRect(p.x + 5, p.y + 2, p.w - 10, 5);
       }
     }
@@ -682,6 +930,75 @@
         ctx.lineTo(x0 + 14, s.y + s.h);
         ctx.fill();
       }
+    }
+  }
+
+  function drawGates() {
+    for (const g of gates) {
+      if (g.opened && g.opening >= 1) continue;
+      ctx.save();
+      const rise = g.opening * g.h;
+      ctx.globalAlpha = 1 - g.opening * 0.85;
+      ctx.translate(0, -rise);
+
+      // Frame + glowing rails.
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(g.x + 2, g.y, g.w - 4, g.h);
+      ctx.fillStyle = theme.gate;
+      ctx.fillRect(g.x + 3, g.y, 3, g.h);
+      ctx.fillRect(g.x + g.w - 6, g.y, 3, g.h);
+
+      // Warning slats.
+      ctx.fillStyle = "rgba(240,171,252,0.4)";
+      for (let i = 0; i < g.h; i += 22) ctx.fillRect(g.x, g.y + i, g.w, 2);
+
+      if (!g.opened) {
+        // Padlock.
+        const px = g.x + g.w / 2;
+        const py = g.y + g.h * 0.48;
+        ctx.fillStyle = "#fbbf24";
+        ctx.fillRect(px - 5, py - 5, 10, 9);
+        ctx.strokeStyle = "#fbbf24";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(px, py - 6, 4.5, Math.PI, 0);
+        ctx.stroke();
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(px - 1.5, py + 0.5, 3, 3);
+        // Floating key hint above the gate.
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = "bold 17px system-ui";
+        ctx.textAlign = "center";
+        ctx.globalAlpha = 0.55 + 0.35 * Math.sin(animTime * 4);
+        ctx.fillText("🔑", px, g.y - 12);
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawKeys() {
+    for (const k of keyItems) {
+      if (k.taken) continue;
+      const bob = Math.sin(animTime * 3 + k.x) * 3;
+      const pulse = 1 + Math.sin(animTime * 5 + k.x * 0.1) * 0.1;
+      const ky = k.y + bob;
+      // Glow ring.
+      ctx.fillStyle = "rgba(251,191,36,0.22)";
+      ctx.beginPath();
+      ctx.arc(k.x, ky, 17 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      // Key shape: bow + shaft + teeth.
+      ctx.fillStyle = "#fbbf24";
+      ctx.beginPath();
+      ctx.arc(k.x - 6, ky, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fde68a";
+      ctx.beginPath();
+      ctx.arc(k.x - 6, ky, 2.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(k.x - 1, ky - 2.5, 13, 5);
+      ctx.fillRect(k.x + 6, ky - 2.5, 3, 7);
+      ctx.fillRect(k.x + 9.5, ky - 2.5, 2, 4.5);
     }
   }
 
@@ -707,7 +1024,7 @@
     ctx.fillRect(fx + 3, GROUND_Y - 8, 24, 8);
     ctx.fillStyle = "#94a3b8";
     ctx.fillRect(fx + 13, GROUND_Y - 118, 5, 112);
-    ctx.fillStyle = "#38bdf8";
+    ctx.fillStyle = theme.flag;
     ctx.beginPath();
     ctx.moveTo(fx + 18, GROUND_Y - 118);
     ctx.quadraticCurveTo(fx + 46, GROUND_Y - 106 + wave, fx + 46, GROUND_Y - 88 + wave);
@@ -720,7 +1037,7 @@
     ctx.fillText("★", fx + 32, GROUND_Y - 92 + wave);
   }
 
-  function drawEnemy(e) {
+  function drawWalker(e) {
     ctx.save();
     ctx.translate(e.x + e.w / 2, e.y + e.h);
     ctx.scale(e.dir, 1);
@@ -748,6 +1065,46 @@
     ctx.fillRect(5, -23, 3, 4);
     ctx.fillRect(-7, -23, 3, 4);
     ctx.restore();
+  }
+
+  function drawFlyer(e) {
+    ctx.save();
+    ctx.translate(e.x + e.w / 2, e.y + e.h / 2);
+    ctx.scale(e.dir, 1);
+    const z = Math.sin(animTime * 20 + e.x) * 2; // electric shimmer
+    // Aura.
+    ctx.fillStyle = "rgba(232,121,249,0.18)";
+    ctx.beginPath();
+    ctx.arc(0, z, 21, 0, Math.PI * 2);
+    ctx.fill();
+    // Body.
+    ctx.fillStyle = "#d946ef";
+    roundRect(-13, -14 + z, 26, 28, 12);
+    ctx.fill();
+    // Lightning bolt accent.
+    ctx.fillStyle = "#fdf4ff";
+    ctx.beginPath();
+    ctx.moveTo(2, -10 + z);
+    ctx.lineTo(-4, -2 + z);
+    ctx.lineTo(0, -2 + z);
+    ctx.lineTo(-2, 8 + z);
+    ctx.lineTo(5, -1 + z);
+    ctx.lineTo(1, -1 + z);
+    ctx.closePath();
+    ctx.fill();
+    // Eyes.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(-8, -6 + z, 5, 6);
+    ctx.fillRect(3, -6 + z, 5, 6);
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(-6.5, -5 + z, 2.5, 3);
+    ctx.fillRect(4.5, -5 + z, 2.5, 3);
+    ctx.restore();
+  }
+
+  function drawEnemy(e) {
+    if (e.kind === "flyer") drawFlyer(e);
+    else drawWalker(e);
   }
 
   function drawPlayer() {
@@ -798,7 +1155,9 @@
 
     drawPlatforms();
     drawSpikes();
+    drawGates();
     drawCoins();
+    drawKeys();
     drawFlag();
     for (const e of enemies) if (e.alive) drawEnemy(e);
     drawParticles();
@@ -823,6 +1182,9 @@
     els.hudLives.textContent = "♥".repeat(Math.max(0, lives)) + "♡".repeat(Math.max(0, 3 - lives));
     els.hudBest.textContent = best ? best : "—";
     els.hudTime.textContent = fmtTime(time);
+    els.hudLevel.textContent = currentLevel;
+    els.hudKey.textContent = keyCount > 0 ? "🔑" : "🔒";
+    els.levelBadge.textContent = LEVELS[currentLevel].name;
   }
 
   // ---------------------------------------------------------------------------
@@ -873,11 +1235,16 @@
 
   canvas.addEventListener("pointerdown", (e) => e.preventDefault());
 
+  // Small dev hook so levels can be exercised from the console.
+  window.__neon = { playLevel, loadLevel, start, player };
+
   // Initial state.
   best = Math.max(best, 0);
+  loadLevel(1);
+  resetPlayer();
   showOverlay(
     "Neon Runner",
-    "Collect coins, stomp baddies, and reach the flag!<br>Touch-friendly controls light up on mobile.",
+    "Collect coins, stomp baddies, and reach the flag!<br>Two levels of neon action — Level 2 adds flying volts and locked gates.<br>Touch-friendly controls light up on mobile.",
     "Start",
     start
   );

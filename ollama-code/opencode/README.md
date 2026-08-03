@@ -11,14 +11,24 @@ front end.
 
 ## 🎮 The game
 
-Neon Runner is a classic side-scrolling platformer:
+Neon Runner is a classic side-scrolling platformer with **two levels**:
+
+**Level 1 — Neon Meadows** (5,120 px):
 
 - Run, jump, and **stomp enemies** to clear them
-- **Collect 30 coins** scattered across a 5,120 px level
+- **Collect 30 coins** scattered across the level
 - Dodge **spike traps** and bottomless gaps
 - Reach the waving flag at the end to win
-- **3 lives**; falling into a pit or touching an enemy/spike costs one
-- Time bonus for finishing fast, **best score saved** between visits
+
+**Level 2 — The Voltage Vault** (4,600 px, unlocked after Level 1):
+
+- Harder: spike landings, wider-feeling jumps, **faster patrolling enemies**
+- New enemy: **volts** — electric flyers that bob up and down over gaps and guard treasures
+- New feature: **keys & gates** — locked gates block your path until you grab their key
+
+Both levels share **3 lives** (score and lives carry over between levels); falling
+into a pit or touching an enemy/spike costs one. Finish a level fast for a **time
+bonus**, and your **best total score** is saved between visits.
 
 ### Controls
 
@@ -39,7 +49,8 @@ On touchscreens, on-screen ◀ ▶ ⬆ buttons appear automatically.
 | --------------- | ------- |
 | Coin            | +10     |
 | Stomp an enemy  | +50     |
-| Time bonus      | up to +300 (300 − seconds, min 0) |
+| Collect a key   | +100    |
+| Time bonus      | up to +300 per level (300 − seconds, min 0) |
 
 ---
 

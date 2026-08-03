@@ -116,6 +116,10 @@ body {
   letter-spacing: 0.05em;
 }
 
+.hud-value#hud-key {
+  color: #fbbf24;
+}
+
 .hud-spacer {
   flex: 1;
 }
