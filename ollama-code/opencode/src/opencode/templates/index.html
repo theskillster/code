@@ -3,6 +3,44 @@
 {% block content %}
   <section class="hero">
     <h2>{{ message }}</h2>
-    <p>Your Flask frontend scaffold is ready.</p>
+    <p>Your Flask frontend scaffold is ready — now with a playable neon platformer.</p>
+  </section>
+
+  <section class="game-section">
+    <h3 class="game-heading">Neon Runner <span class="game-heading-badge">2D platformer</span></h3>
+
+    <div class="game-shell">
+      <div class="game-hud">
+        <div class="hud-item"><span class="hud-label">Score</span><span class="hud-value" id="hud-score" aria-live="polite">0</span></div>
+        <div class="hud-item"><span class="hud-label">Coins</span><span class="hud-value" id="hud-coins">0/30</span></div>
+        <div class="hud-item"><span class="hud-label">Lives</span><span class="hud-value" id="hud-lives">♥♥♥</span></div>
+        <div class="hud-item"><span class="hud-label">Best</span><span class="hud-value" id="hud-best">—</span></div>
+        <div class="hud-item"><span class="hud-label">Time</span><span class="hud-value" id="hud-time">0:00</span></div>
+        <div class="hud-spacer"></div>
+        <button class="hud-btn" id="btn-sound" type="button" title="Toggle sound">🔊</button>
+        <button class="hud-btn" id="btn-pause" type="button" title="Pause">⏸️</button>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="game-canvas" width="960" height="540" tabindex="0" role="img" aria-label="Neon Runner platformer game. Keyboard required: arrow keys to move, space to jump."></canvas>
+        <div class="game-overlay hidden" id="game-overlay">
+          <h4 class="overlay-title" id="overlay-title">Neon Runner</h4>
+          <p class="overlay-text" id="overlay-text"></p>
+          <button class="overlay-btn" id="btn-start" type="button">Start</button>
+        </div>
+      </div>
+
+      <div class="touch-controls" aria-hidden="true">
+        <button class="touch-btn" data-key="left" type="button">◀</button>
+        <button class="touch-btn" data-key="right" type="button">▶</button>
+        <button class="touch-btn touch-jump" data-key="jump" type="button">⬆</button>
+      </div>
+    </div>
+
+    <p class="game-hint">
+      <kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd> move ·
+      <kbd>Space</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> jump (hold for height) ·
+      <kbd>P</kbd> pause · <kbd>R</kbd> restart
+    </p>
   </section>
 {% endblock %}
