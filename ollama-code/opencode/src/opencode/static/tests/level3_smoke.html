@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Level 3 Smoke Test</title>
+<style>
+  body { font-family: ui-monospace, monospace; background: #0b1020; color: #e2e8f0; padding: 24px; }
+  .pass { color: #4ade80; } .fail { color: #f87171; }
+  pre { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Level 3 Smoke Test</h1>
+<pre id="results">running&#8230;</pre>
+
+<!-- Minimal DOM the modules need (canvas + renderer els + buttons). -->
+<canvas id="game-canvas" width="960" height="540"></canvas>
+<div id="game-overlay" class="hidden">
+  <h4 id="overlay-title"></h4>
+  <p id="overlay-text"></p>
+  <button id="btn-start"></button>
+</div>
+<button id="btn-sound"></button>
+<button id="btn-pause"></button>
+<span id="hud-score"></span><span id="hud-coins"></span><span id="hud-lives"></span>
+<span id="hud-best"></span><span id="hud-time"></span><span id="hud-level"></span>
+<span id="hud-key"></span><span id="level-name-badge"></span>
+
+<script src="../js/audio.js"></script>
+<script src="../js/input.js"></script>
+<script src="../js/levels.js"></script>
+<script src="../js/entities.js"></script>
+<script src="../js/renderer.js"></script>
+<script src="../js/game.js"></script>
+
+<script>
+"use strict";
+const out = [];
+const log = (s) => out.push(s);
+const results = document.getElementById("results");
+function check(name, cond, detail) {
+  log((cond ? "PASS  " : "FAIL  ") + name + (detail ? "  (" + detail + ")" : ""));
+}
+// ---- Task 1: level data ----
+check("LEVELS[3] exists", !!Levels.LEVELS[3], Levels.LEVELS[3] && Levels.LEVELS[3].name);
+check("LEVELS[3].width is 6200", Levels.LEVELS[3] && Levels.LEVELS[3].width === 6200, Levels.LEVELS[3] && Levels.LEVELS[3].width);
+check("LEVEL_MAX_W is 6400", Levels.LEVEL_MAX_W === 6400, Levels.LEVEL_MAX_W);
+check("THEMES[3] exists", !!Levels.THEMES[3]);
+window.__neon.loadLevel(3);
+check("loadLevel(3) builds without throwing", Entities.gameState.currentLevel === 3);
+check("level 3 has > 30 coins", Levels.coins.length > 30, Levels.coins.length);
+check("level 3 has >= 6 checkpoints", Entities.gameState.CHECKPOINTS.length >= 6, Entities.gameState.CHECKPOINTS.length);
+// Reachability: every surface must be reachable from the start by running
+// jumps (uses the real physics constants). A surface B is reachable from A
+// when B's left edge is within jump range of A's right edge, where airtime
+// accounts for the height delta (landing lower = more airtime, jumping up
+// capped at the max jump height).
+const { GRAV, JUMP_V, MOVE } = Entities;
+const maxRise = (JUMP_V * JUMP_V) / (2 * GRAV);
+// Time until the jumper is at height h again while FALLING (the game only
+// lets the player land while moving downward).
+const timeToHeight = (h) => (JUMP_V + Math.sqrt(JUMP_V * JUMP_V - 2 * GRAV * h)) / GRAV;
+const airtime = (dy) => (dy < 0 ? timeToHeight(-dy) : JUMP_V / GRAV + Math.sqrt((2 * (maxRise + dy)) / GRAV));
+const surfs = Levels.platforms.slice().sort((a, b) => a.x - b.x);
+const reach = new Set([0]);
+let changed = true;
+while (changed) {
+  changed = false;
+  for (let i = 0; i < surfs.length; i++) {
+    if (!reach.has(i)) continue;
+    const A = surfs[i];
+    for (let j = 0; j < surfs.length; j++) {
+      if (reach.has(j) || surfs[j].x < A.x) continue;
+      const dy = surfs[j].y - A.y;
+      if (dy < 0 && -dy > maxRise + 1) continue;
+      if (surfs[j].x <= A.x + A.w + MOVE * airtime(dy) - 8) {
+        reach.add(j);
+        changed = true;
+      }
+    }
+  }
+}
+const unreachable = surfs.filter((s, i) => !reach.has(i));
+check("every surface is reachable (jump BFS)", unreachable.length === 0,
+  unreachable.map((s) => s.kind + "@" + s.x).join(","));
+// ---------------- end of task block ----------------
+results.textContent = out.join("\n");
+</script>
+</body>
+</html>
