@@ -115,6 +115,22 @@ p.x = d3.x + d3.w + 10; p.y = Levels.GROUND_Y - 46; p.vy = 0; p.invuln = 0;
 Entities.update(0.04);
 check("dashing darter hits the player", Entities.gameState.dying > 0, "dying=" + Entities.gameState.dying);
 // ---------------- end of task block ----------------
+// ---- Task 3: life heart ----
+window.__neon.loadLevel(3);
+const life = Levels.lifePickups.find((l) => !l.taken);
+check("level 3 has life pickups", !!life);
+Entities.gameState.dying = 0; // clear the death-beat left by the darter dash test
+const livesBefore = Entities.gameState.lives;
+p.x = life.x - 10; p.y = life.y - 23; p.invuln = 10;
+Entities.update(0.016);
+check("collecting a life heart adds a life", Entities.gameState.lives === livesBefore + 1, livesBefore + " -> " + Entities.gameState.lives);
+check("life heart is consumed", life.taken);
+// Cap + HUD: hearts render past 3.
+Entities.gameState.lives = 6;
+Renderer.updateHUD();
+check("HUD renders 6 hearts", document.getElementById("hud-lives").textContent === "\u2665".repeat(6));
+check("sfx.life exists", typeof Audio.sfx.life === "function");
+// ---------------- end of task block ----------------
 results.textContent = out.join("\n");
 </script>
 </body>

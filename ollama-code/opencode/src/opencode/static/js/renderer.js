@@ -16,7 +16,7 @@ const Renderer = (() => {
 
   const {
     GROUND_H, GROUND_Y,
-    platforms, coins, enemies, projectiles, spikes, keyItems, gates, flag,
+    platforms, coins, enemies, projectiles, spikes, keyItems, gates, lifePickups, flag,
     stars, clouds,
     THEMES,
   } = Levels;
@@ -213,6 +213,40 @@ const Renderer = (() => {
       ctx.fillRect(k.x - 1, ky - 2.5, 13, 5);
       ctx.fillRect(k.x + 6, ky - 2.5, 3, 7);
       ctx.fillRect(k.x + 9.5, ky - 2.5, 2, 4.5);
+    }
+  }
+
+  // --- Life heart pickups ---
+  function drawLifePickups() {
+    for (const li of lifePickups) {
+      if (li.taken) continue;
+      const bob = Math.sin(gameState.animTime * 3 + li.x) * 3;
+      const pulse = 1 + Math.sin(gameState.animTime * 5 + li.x * 0.1) * 0.12;
+      const ly = li.y + bob;
+      ctx.fillStyle = "rgba(244,63,94,0.22)";
+      ctx.beginPath();
+      ctx.arc(li.x, ly, 19 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.save();
+      ctx.translate(li.x, ly);
+      ctx.scale(pulse, pulse);
+      ctx.fillStyle = "#f43f5e";
+      ctx.beginPath();
+      ctx.arc(-6, -3, 7, 0, Math.PI * 2);
+      ctx.arc(6, -3, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fb7185";
+      ctx.beginPath();
+      ctx.moveTo(-12.5, -1);
+      ctx.lineTo(0, 13);
+      ctx.lineTo(12.5, -1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#fecdd3";
+      ctx.beginPath();
+      ctx.arc(-2.5, -5, 2.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
@@ -484,6 +518,7 @@ const Renderer = (() => {
     drawGates();
     drawCoins();
     drawKeys();
+    drawLifePickups();
     drawFlag();
     for (const e of enemies) if (e.alive) drawEnemy(e);
     for (const p of projectiles) drawProjectile(p);

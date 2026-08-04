@@ -21,6 +21,7 @@ const Levels = (() => {
   const spikes = [];
   const keyItems = [];
   const gates = [];
+  const lifePickups = [];
   const flag = { x: 0 };
 
   // --- Level builder helpers ---
@@ -84,6 +85,7 @@ const Levels = (() => {
     });
   const key = (x, y, label) => keyItems.push({ x, y, r: 12, label, taken: false });
   const gate = (x, h, label) => gates.push({ x, y: GROUND_Y - h, w: 14, h, label, opened: false, opening: 0 });
+  const lifePickup = (x, y) => lifePickups.push({ x, y, r: 13, taken: false });
   const coinArc = (cx, cy, n) => {
     for (let i = 0; i < n; i++) coin(cx + i * 34, cy - Math.sin((i / (n - 1)) * Math.PI) * 46);
   };
@@ -318,10 +320,13 @@ const Levels = (() => {
 
         ground(5160, 460);
         coinArc(5240, 440, 4);
+        lifePickup(5520, 450);   // ground level, final stretch
 
         ground(5760, 440);
         coinArc(5840, 440, 3);
         coinArc(5940, 400, 3);
+
+        lifePickup(1130, 310);   // on plat(1080, 330, 110)
 
         darter(420, 200, 500, 1.1, 260, 470);            // start — teaches the dash
         darter(1950, 1800, 2030, 1.2, 280, 480);         // before gate A
@@ -374,11 +379,12 @@ const Levels = (() => {
     spikes.length = 0;
     keyItems.length = 0;
     gates.length = 0;
+    lifePickups.length = 0;
   }
 
   return {
     GROUND_H, GROUND_Y, LEVEL_MAX_W, W, H,
-    platforms, coins, enemies, projectiles, spikes, keyItems, gates, flag,
+    platforms, coins, enemies, projectiles, spikes, keyItems, gates, lifePickups, flag,
     stars, clouds,
     THEMES, LEVELS,
     clearScene, coinArc,

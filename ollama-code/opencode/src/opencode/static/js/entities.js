@@ -10,7 +10,7 @@ const Entities = (() => {
   const { sfx } = Audio;
   const {
     GROUND_H, GROUND_Y, W, H,
-    platforms, coins, enemies, projectiles, spikes, keyItems, gates, flag,
+    platforms, coins, enemies, projectiles, spikes, keyItems, gates, lifePickups, flag,
     LEVELS, THEMES, LEVEL_MAX_W,
   } = Levels;
 
@@ -250,6 +250,23 @@ const Entities = (() => {
     }
   }
 
+  // Life hearts: +1 life (capped at 6 so the HUD stays sane).
+  function updateLives() {
+    const gs = gameState;
+    for (const li of lifePickups) {
+      if (!li.taken && circleRect(li.x, li.y, li.r, player)) {
+        li.taken = true;
+        gs.score += 50;
+        if (gs.lives < 6) {
+          gs.lives++;
+          sfx.life();
+          sparkle(li.x, li.y);
+          burst(li.x, li.y, 12);
+        }
+      }
+    }
+  }
+
   // Enemies: patrol, flyer bob, shooter aim/fire, stomp detection.
   function updateEnemies(dt) {
     const gs = gameState;
@@ -410,6 +427,7 @@ const Entities = (() => {
     updateRunAnim(dt);
     updateCoins();
     updateKeys();
+    updateLives();
     updateEnemies(dt);
     updateProjectiles(dt);
     updateSpikes();
