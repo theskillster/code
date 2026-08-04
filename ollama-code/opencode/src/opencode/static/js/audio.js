@@ -118,6 +118,21 @@ const Audio = (() => {
         ...bar16(40, [64, 64, 67, 67, 71, 71, 76, 76, 75, 75, 71, 71, 67, 67, 64, 64]), // Em (D# lead-in)
       ],
     },
+    3: {
+      name: "Solar Sprint",
+      bpm: 140,
+      sub: 2,
+      bassType: "sine",
+      leadType: "triangle",
+      bassVol: 0.11,
+      leadVol: 0.065,
+      steps: [
+        ...bar8(45, [69, 73, 76, 81, 85, 81, 76, 73]), // A
+        ...bar8(38, [62, 66, 69, 74, 78, 74, 69, 66]), // D
+        ...bar8(42, [66, 69, 73, 78, 81, 78, 73, 69]), // F#m
+        ...bar8(40, [64, 68, 71, 76, 80, 76, 71, 68]), // E
+      ],
+    },
   };
 
   function musicNote(freq, dur, type, vol, at) {

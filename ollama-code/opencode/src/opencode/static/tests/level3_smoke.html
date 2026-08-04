@@ -131,6 +131,10 @@ Renderer.updateHUD();
 check("HUD renders 6 hearts", document.getElementById("hud-lives").textContent === "\u2665".repeat(6));
 check("sfx.life exists", typeof Audio.sfx.life === "function");
 // ---------------- end of task block ----------------
+// ---- Task 4: track 3 ----
+Audio.playMusic(3);
+check("playMusic(3) starts without throwing", Audio.musicActive());
+// ---------------- end of task block ----------------
 results.textContent = out.join("\n");
 </script>
 </body>
