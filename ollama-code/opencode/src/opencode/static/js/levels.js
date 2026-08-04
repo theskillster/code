@@ -64,6 +64,24 @@ const Levels = (() => {
       aim: 0,
     });
   const spike = (x, w = 48) => spikes.push({ x, y: GROUND_Y - 16, w, h: 16 });
+  const darter = (x, min, max, wait = 1.2, dashDist = 260, dashSpeed = 460) =>
+    enemies.push({
+      x,
+      y: GROUND_Y - 34,
+      w: 40,
+      h: 34,
+      min,
+      max,
+      dir: 1,
+      speed: 0,
+      alive: true,
+      kind: "darter",
+      state: "wait",
+      timer: wait,
+      waitTime: wait,
+      dashDist,
+      dashSpeed,
+    });
   const key = (x, y, label) => keyItems.push({ x, y, r: 12, label, taken: false });
   const gate = (x, h, label) => gates.push({ x, y: GROUND_Y - h, w: 14, h, label, opened: false, opening: 0 });
   const coinArc = (cx, cy, n) => {
@@ -304,6 +322,15 @@ const Levels = (() => {
         ground(5760, 440);
         coinArc(5840, 440, 3);
         coinArc(5940, 400, 3);
+
+        darter(420, 200, 500, 1.1, 260, 470);            // start — teaches the dash
+        darter(1950, 1800, 2030, 1.2, 280, 480);         // before gate A
+        darter(3560, 3400, 3630, 1.3, 300, 490);         // before gate B
+        darter(5280, 5140, 5420, 1.2, 300, 480);         // final stretch
+        flyer(2630, 2600, 2700, 350, 40, 2.0, 1);        // mid-section bobber
+        shooter(3020, 2940, 3100, 2.6, 320);             // aimed bolts
+        flyer(4320, 4280, 4400, 340, 40, 1.8, 3);        // second bobber
+        shooter(4700, 4640, 4840, 2.4, 320);             // second turret
       },
     },
   };

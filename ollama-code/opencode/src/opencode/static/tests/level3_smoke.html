@@ -84,6 +84,37 @@ const unreachable = surfs.filter((s, i) => !reach.has(i));
 check("every surface is reachable (jump BFS)", unreachable.length === 0,
   unreachable.map((s) => s.kind + "@" + s.x).join(","));
 // ---------------- end of task block ----------------
+// ---- Task 2: darter ----
+window.__neon.loadLevel(3);
+const darter0 = Levels.enemies.find((e) => e.kind === "darter");
+check("level 3 has darter enemies", !!darter0);
+const p = Entities.player;
+p.x = darter0.x - 60; p.y = Levels.GROUND_Y - 46; p.vy = 0; p.vx = 0;
+p.invuln = 10;
+Input.keys.left = Input.keys.right = Input.keys.jump = false;
+const startX = darter0.x;
+let sawDash = false;
+for (let i = 0; i < 40 && !sawDash; i++) {
+  Entities.update(0.04);
+  if (darter0.state === "dash") sawDash = true;
+}
+Entities.update(0.04); // one more frame so the dash actually moves the enemy
+check("darter charges up then dashes", sawDash, "state=" + darter0.state);
+check("darter moved during dash", darter0.x !== startX, startX + " -> " + darter0.x);
+// Stomp kills a waiting darter.
+window.__neon.loadLevel(3);
+const d2 = Levels.enemies.find((e) => e.kind === "darter");
+p.x = d2.x + 5; p.y = d2.y - 40; p.vy = 300; p.invuln = 0;
+Entities.update(0.016);
+check("stomping a waiting darter kills it", !d2.alive);
+// Dashing darter hurts (dying timer starts, life not yet deducted).
+window.__neon.loadLevel(3);
+const d3 = Levels.enemies.find((e) => e.kind === "darter");
+d3.state = "dash"; d3.timer = 300; d3.dir = 1;
+p.x = d3.x + d3.w + 10; p.y = Levels.GROUND_Y - 46; p.vy = 0; p.invuln = 0;
+Entities.update(0.04);
+check("dashing darter hits the player", Entities.gameState.dying > 0, "dying=" + Entities.gameState.dying);
+// ---------------- end of task block ----------------
 results.textContent = out.join("\n");
 </script>
 </body>
