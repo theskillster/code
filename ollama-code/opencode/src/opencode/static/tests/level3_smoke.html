@@ -137,6 +137,7 @@ check("playMusic(3) starts without throwing", Audio.musicActive());
 // ---------------- end of task block ----------------
 // ---- Task 5: wiring ----
 check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
+Audio.stopMusic(); // prove playLevel itself starts the music
 window.__neon.playLevel(3);
 check("playLevel(3) enters level 3", Entities.gameState.currentLevel === 3 && Entities.gameState.state === "playing");
 check("level 3 starts its music", Audio.musicActive());

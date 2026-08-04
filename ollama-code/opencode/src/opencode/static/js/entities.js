@@ -295,9 +295,13 @@ const Entities = (() => {
         const ecx = e.x + e.w / 2;
         const pcx = player.x + player.w / 2;
         if (e.state === "wait") {
-          if (Math.abs(pcx - ecx) < 520) e.dir = pcx >= ecx ? 1 : -1;
-          e.timer -= dt;
-          if (e.timer <= 0) { e.state = "windup"; e.timer = 0.3; }
+          // Only act when the player is near: face them and wind up the
+          // dash timer. Idle darters far away never waste a dash.
+          if (Math.abs(pcx - ecx) < 520) {
+            e.dir = pcx >= ecx ? 1 : -1;
+            e.timer -= dt;
+            if (e.timer <= 0) { e.state = "windup"; e.timer = 0.3; }
+          }
         } else if (e.state === "windup") {
           e.timer -= dt;
           if (e.timer <= 0) { e.state = "dash"; e.timer = e.dashDist; }
