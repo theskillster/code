@@ -70,7 +70,8 @@ On touchscreens, on-screen ◀ ▶ ⬆ buttons appear automatically.
 ├── wsgi.py                   # entry point: `flask --app wsgi run`
 ├── .python-version           # pinned Python version
 ├── README.md                 # this file
-├── explanation.md            # friendly walkthrough of how the code works
+├── explanation.md            # plain-text walkthrough of the code (Markdown)
+├── explanation.html          # rich visual walkthrough (interactive, open in browser)
 └── src/
     └── opencode/
         ├── __init__.py       # create_app() factory (templates + static paths)
@@ -80,7 +81,7 @@ On touchscreens, on-screen ◀ ▶ ⬆ buttons appear automatically.
         │   └── index.html    # game page: HUD, canvas, overlay, touch buttons
         └── static/
             ├── css/main.css  # page + game styling (dark neon theme)
-            └── js/main.js    # THE GAME — ~550 lines of canvas JavaScript
+            └── js/main.js    # THE GAME — ~1,412 lines of canvas JavaScript
 ```
 
 ## 🚀 Setup
@@ -124,5 +125,14 @@ uv run ruff format .         # format
 
 ## 🧠 Reading the code
 
-Start with [`explanation.md`](./explanation.md) — it explains the game code
-section by section in plain language, with no prior game-dev knowledge required.
+Two complementary guides:
+
+- **`explanation.md`** — plain-text walkthrough in Markdown, readable in any
+  editor or on GitHub. Covers the main executable, server-side files, game
+  engine, states, and findings.
+- **`explanation.html`** — rich visual walkthrough with interactive diagrams
+  (request flow, file tree, state machine, game loop), syntax-highlighted code
+  tabs, and animated SVGs. Open in your browser: `open explanation.html`.
+
+Both explain the same code: the entry point, the Flask app factory, the single
+route, and the 1,412-line front-end game engine.

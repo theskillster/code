@@ -13,3 +13,9 @@ def create_app() -> Flask:
     )
     app.register_blueprint(main_bp)
     return app
+
+
+def main() -> None:
+    """Entry point for the ``opencode`` console script."""
+    app = create_app()
+    app.run()

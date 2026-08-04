@@ -1,260 +1,163 @@
-# Neon Runner — How the Code Works (a friendly tour)
+# OpenCode — Main Executable Explained
 
-This file explains the game's code in plain language. No game-dev experience
-needed — if you can follow a recipe, you can follow this.
-
-The whole game lives in **one file**: `src/opencode/static/js/main.js`
-(~550 lines). It's a "single-page app" in the truest sense: the Flask server
-just sends you one HTML page, and the browser does everything else.
+> **Project:** OpenCode (Neon Runner) — a Flask web app that serves a playable 2D canvas platformer.  
+> **Entry point:** `wsgi.py` (7 lines)  
+> **Server code total:** 45 lines across 4 files  
+> **Game engine:** `main.js` — 1,412 lines of vanilla JavaScript
 
 ---
 
-## 1. The big picture: a loop, 60 times a second
+## 1. The entry point: `wsgi.py`
 
-A game is basically a very fast flipbook. The core of the game is a **game
-loop** — a function that runs over and over (roughly 60 times per second) and
-does three things each time:
+```python
+from opencode import create_app
 
-```
-1. figure out what the player wants to do (read the keyboard)
-2. move everything a tiny bit (physics & collisions)
-3. paint the new picture on the canvas (draw)
-```
+app = create_app()
 
-In code, that's `requestAnimationFrame(loop)` calling itself forever:
 
-```js
-function loop(ts) {
-  const dt = Math.min((ts - last) / 1000 || 0, 1 / 30); // seconds since last frame
-  last = ts;
-  if (state === "playing") { update(dt); updateCamera(); }
-  draw();
-  requestAnimationFrame(loop); // do it all again next frame
-}
+if __name__ == "__main__":
+    app.run(debug=True)
 ```
 
-`dt` (delta time) is how many **seconds** passed since the last frame. Every
-speed in the game (pixels per second) is multiplied by `dt`, so the game runs at
-the same speed on a 60 Hz and a 144 Hz monitor. The `Math.min(..., 1/30)` just
-caps it so a hiccup doesn't teleport the player.
+**What each line does:**
+
+| Line | Role |
+|------|------|
+| 1 | Import the app factory from the `opencode` package (lives in `src/opencode/`) |
+| 3 | Build the Flask app at import time — this is the `app` object that WSGI servers and the Flask CLI discover |
+| 6–7 | Guarded direct-run block: only runs when you execute `python wsgi.py` directly. Launches Werkzeug's dev server on `127.0.0.1:5000` with debug mode on |
+
+**The factory pattern** (`create_app()`) keeps the import side-effect free — nothing runs until the app is actually built.
 
 ---
 
-## 2. The world is made of rectangles
+## 2. Two (really three) ways the executable starts
 
-The whole level is a list of plain objects. A ground segment, a floating
-platform, and a spike are all basically the same thing: `{ x, y, width, height }`.
-
-```js
-const ground = (x, w) => platforms.push({ x, y: GROUND_Y, w, h: GROUND_H, kind: "ground" });
-const plat   = (x, y, w, h = 26) => platforms.push({ x, y, w, h, kind: "plat" });
+### Path A — Flask CLI (recommended dev command)
 ```
-
-`GROUND_Y` is the y-coordinate of the top of the ground (the bottom of the
-screen minus the ground's height). The level is built by calling these helpers —
-each call is one line in the file, so the "level designer" part of the code is
-just data:
-
-```js
-ground(0, 620);          // ground from x=0, 620px wide
-plat(680, 420, 130);     // floating platform at x=680, 130px wide
-spike(1660, 46);         // spike trap on the ground
-coinArc(1250, 330, 3);   // 3 coins in a little arc
-enemy(350, 120, 580, 60);// an enemy that walks back and forth
+uv run flask --app wsgi run --debug
 ```
+The CLI imports `wsgi`, finds the `app` object, and runs it.
 
-> **Fun fact:** the level is 5,120 px wide but the screen is only 960 px. The
-> **camera** follows the player: `camera.x` tracks the player and every drawing
-> call is shifted by `-camera.x`, which makes the world scroll past. That's the
-> whole secret of "side-scrolling".
+### Path B — Direct script
+```
+python wsgi.py
+```
+Executes line 7, calls `app.run(debug=True)`. Same result, different mental model.
+
+### Path C — Production WSGI server
+```
+gunicorn wsgi:app
+```
+Tools like gunicorn/uWSGI import the module, grab `app`, and serve behind a production-grade server. No debugger, no reloader. The file doesn't need to change — that's the whole point of the factory pattern.
 
 ---
 
-## 3. The player: physics in ~40 lines
+## 3. Request lifecycle (GET /)
 
-The player is just a rectangle with extra fields: position `(x, y)`, velocity
-`(vx, vy)` (speed in the x and y directions), and a flag for whether they're on
-the ground.
-
-**Gravity** is the heart of the feel. Every frame, falling speed increases:
-
-```js
-player.vy = Math.min(player.vy + GRAV * dt, MAX_FALL);
+```
+Browser → WSGI server → Flask app → main blueprint → index() → Jinja2 → HTML page
+                                                                       ↓
+                                                            Browser loads CSS + JS
+                                                                       ↓
+                                                          Game runs client-side
 ```
 
-`GRAV` (2,300 px/s²) makes the player speed up as they fall. `MAX_FALL` is the
-terminal velocity cap so they never fall absurdly fast.
-
-**Jumping** is a single line — set velocity upward:
-
-```js
-if (player.jumpBuffer > 0 && player.coyote > 0) {
-  player.vy = -JUMP_V;
-  ...
-}
-```
-
-Two friendly touches make jumping feel good in games:
-
-- **Coyote time** (`COYOTE`): after you walk off a ledge, you can still jump for
-  ~0.09s. Named after the cartoon character who runs off a cliff but doesn't
-  fall until he looks down.
-- **Jump buffering** (`BUFFER`): if you press jump a fraction of a second
-  *before* landing, it fires the moment you land. No more "I pressed it but it
-  didn't work!"
-
-**Variable jump height**: if you release the jump key while going up, the upward
-speed is cut, so the player rises less. Press-tap = small hop, hold = big jump.
-
-**Collision** is the most "gamey" part. After moving horizontally, we check
-whether the player rectangle overlaps any platform rectangle, and if so, push
-the player back out. Then we do the same for vertical movement. The vertical
-pass is **sub-stepped**: the fall is chopped into ≤12 px chunks so a very fast
-fall can't tunnel straight through a thin platform between two frames.
+**What the browser actually loads:**
+1. `css/main.css` — dark neon theme, HUD, layout (~315 lines)
+2. `js/main.js` — the entire game engine: physics, levels, enemies, audio synth, render loop (~1,412 lines)
+3. After that, the connection goes quiet: the game runs **entirely client-side** with `requestAnimationFrame`, and persistence uses `localStorage`, not the server.
 
 ---
 
-## 4. Making it feel alive: enemies, coins, spikes, particles
+## 4. The app map
 
-- **Enemies** walk back and forth between `min` and `max` (flip direction at
-  each end). If you land on top of one while falling (`player.vy > 120`), it's a
-  **stomp**: the enemy dies, you bounce up, +50 points. Otherwise touching it
-  hurts you.
-- **Coins** are circles; collision uses a "closest point on rectangle to circle"
-  check. Collecting sets `taken = true` so it disappears.
-- **Spikes** are just rectangles you must not touch.
-- **Particles** are tiny colored squares with a velocity and a lifetime. They're
-  spawned by `sparkle()`, `burst()`, `dust()`, and `confetti()`, then fade out.
-  All of the "juice" — sparkles on coins, confetti on winning — is just lots of
-  little squares moving and fading.
+```
+wsgi.py                          — entry point (builds app, exposes `app`)
+└── src/opencode/__init__.py     — app factory (create_app): folders + blueprint
+    ├── routes.py                — blueprint: single route GET / → index.html
+    ├── templates/base.html      — layout shell: head, header, CSS/JS links
+    │   └── templates/index.html — game page: HUD + canvas + overlay + touch buttons
+    ├── static/css/main.css      — dark neon theme (~315 lines)
+    └── static/js/main.js        — the game engine (1,412 lines)
+```
+
+**Server-side code total:** 45 lines across 4 files:
+- `wsgi.py` — 7 lines
+- `__init__.py` — 15 lines
+- `routes.py` — 8 lines
+- `base.html` — 18 lines
+- `index.html` — 48 lines (Jinja template, rendered on server)
 
 ---
 
-## 5. Danger, respawning, and fairness
+## 5. The game engine (`main.js`)
 
-Getting hurt sets `invuln` (invulnerability) to 2.2 seconds, during which you
-blink and can't be hurt again — so a hit never chains into a cheap death.
+### The heartbeat loop
+```
+requestAnimationFrame(loop)
+  → clamp dt (capped at 1/30s to survive tab-switch spikes)
+  → update(dt) — physics, input, collisions, enemy AI (only in "playing" state)
+  → updateCamera — follows player, clamped to level bounds
+  → draw() — background, platforms, entities, particles, vignette
+  → updateHUD — sync DOM score/coins/lives/time
+  → back to rAF
+```
 
-If you fall into a pit, you lose a life and **respawn at the last checkpoint**.
-Checkpoints are hard-coded x-positions (`CHECKPOINTS`) that were each verified to
-sit on solid ground, so you never respawn over a gap. One subtle bug was caught
-in review here: the respawn code used to be skipped while the player was still
-invulnerable, which meant falling into a pit during the blink window would soft-
-lock the game (you'd fall forever). Now falling into a pit **always** respawns —
-invulnerability only protects you from enemies and spikes.
+### Game states
+The whole app is a tiny state machine driven by one variable, `state`:
 
-```js
-function hurt(fell = false) {
-  if (!fell && player.invuln > 0) return; // invuln only blocks contact damage
-  lives--;
-  ...
-}
+| State | What happens |
+|-------|-------------|
+| **menu** | Boot: `loadLevel(1)` + overlay with Start. Pressing it calls `start()` |
+| **playing** | The only state where `update(dt)` runs. Input, physics, coins, enemies, bolts, spikes, flag, checkpoints |
+| **paused** | Loop keeps drawing but never updates. Triggered by P/Esc or the ⏸ button. Auto-pauses on tab hide |
+| **win** | Flag reached: time bonus `max(0, 300 − seconds)`, best score saved to localStorage, confetti + jingle |
+| **over** | Lives hit 0: shows final score vs. best. Try again restarts fresh |
+
+### Physics constants
+- `GRAV = 2300` pixels/s²
+- `MOVE = 340` pixels/s
+- `JUMP_V = 800` pixels/s
+- `MAX_FALL = 1300` pixels/s
+- **Coyote time:** 0.09s — you can still jump briefly after walking off a ledge
+- **Jump buffering:** 0.12s — press jump slightly before landing and it still fires
+
+### Three enemy types
+1. **Walkers** — patrol between `min`/`max` bounds, stompable from above
+2. **Flyers** (volts) — bob sinusoidally, introduced in Level 2
+3. **Shooters** (turrets) — track the player's position, fire plasma bolts when in range
+
+### Levels as data
+Levels aren't art assets — they're coordinate arrays built by plain functions. Example from Level 2 ("The Voltage Vault"):
+```javascript
+ground(1540, 360);
+spike(1630, 44);
+shooter(1680, 1590, 1820, 2.6, 320);   // plasma turret
+flyer(1910, 1905, 1995, 390, 40, 2.0, 0);  // volt guarding the gap
+key(2575, 330, "A");                    // key A unlocks gate A
+gate(2700, 300, "A");
 ```
 
 ---
 
-## 6. Sound without any audio files
+## 6. Findings & gotchas
 
-There are no `.mp3` or `.wav` files anywhere. Every sound is **synthesized on
-the fly** with the Web Audio API:
+### ⚠ Broken console script
+`pyproject.toml` declares `[project.scripts] opencode = "opencode:main"`, but `src/opencode/__init__.py` only defines `create_app` — **no `main` function exists**. Installing the package creates an `opencode` command that crashes on launch. The working entry is `wsgi.py` (via `flask --app wsgi run`).
 
-```js
-function tone(freq, dur, type = "square", vol = 0.14, ...) {
-  // create an oscillator (a raw beep), connect it to the speakers,
-  // play it for `dur` seconds, fade it out
-}
-```
+### ⚠ README understates the game
+The README says `main.js` is "~550 lines of canvas JavaScript". It's actually **1,412 lines** — nearly 3×. The file has grown with Level 2 (turrets, flyers, keys/gates, projectiles).
 
-A jump is a rising square wave; a coin is two quick sine notes (a little "ding-
-ding"); winning plays a four-note arpeggio. Each sound is a one-line call:
+### ℹ src-layout needs PYTHONPATH
+The package lives in `src/` and isn't necessarily installed into the venv. The README suggests `PYTHONPATH=src uv run flask --app wsgi run` as a fallback. `uv sync` normally installs the local package, making this unnecessary.
 
-```js
-sfx.coin();   // tone(880, 0.08) then tone(1318, 0.12) 60ms later
-```
+### ℹ Debug mode = dev only
+`app.run(debug=True)` (line 7) enables the Werkzeug debugger — handy locally, dangerous if ever exposed publicly. Production should use `wsgi:app` behind gunicorn/uWSGI.
 
-Browsers block audio until the user interacts with the page, which is why
-sounds only start after you click **Start** (`ensureAudio()`).
+### ℹ Everything is client-side
+After the initial page load there is **no backend interaction at all** — no APIs, no POST routes, no database. Persistence (best score, sound preference) is `localStorage` in the browser. The Python layer is 45 lines total; the game is 1,412.
 
 ---
 
-## 7. Remembering things: localStorage
-
-`localStorage` is the browser's tiny permanent key-value store. The game uses
-it twice:
-
-```js
-lsGet("opencode-best")     // your best score, restored next visit
-lsSet("opencode-best", best)
-```
-
-These are wrapped in safe `lsGet`/`lsSet` helpers with `try/catch` so that if
-storage is blocked (private browsing, sandboxed iframe) the game just carries on
-without it instead of crashing.
-
----
-
-## 8. The HTML and CSS around it
-
-- **`templates/index.html`** — the game's markup. The `<canvas>` is where the
-  game draws; the HUD (score/coins/lives/best/time) is ordinary HTML updated
-  every frame by `updateHUD()`; the overlay (menu/pause/win/game-over) is a
-  `<div>` that shows/hides via a CSS class.
-- **`static/css/main.css`** — the dark neon theme. The canvas wrapper uses
-  `aspect-ratio: 16 / 9` so the game scales to any screen width. Touch buttons
-  only appear on touch devices via `@media (pointer: coarse)`.
-
----
-
-## 9. Where to start reading
-
-1. `index.html` — see what's on the page
-2. `main.js`, section by section, in this order:
-   1. **Level data** (the "world-building" lines)
-   2. **update()** (input → physics → collisions → scoring)
-   3. **draw()** (painting sky, platforms, player, enemies)
-   4. **loop()** (tying it all together)
-
-If you want to change something, the friendliest entry points are:
-
-- **Make the level harder/easier** → edit the `ground()` / `plat()` / `enemy()` lines
-- **Change player speed or jump height** → tweak `MOVE` / `JUMP_V` / `GRAV`
-- **Add a new sound** → add a `sfx.mySound = () => tone(...)` line
-- **Restyle the game** → edit the colors in `draw()` or `main.css`
-
----
-
-## 10. Two levels, keys & gates, and flying volts
-
-The game grew from one level into a small campaign. The level data moved into a
-`LEVELS` object — one entry per level with its name, width, flag position,
-checkpoints, and a `build()` function that calls the same `ground()` / `plat()` /
-`coin()` helpers you already know:
-
-```js
-const LEVELS = {
-  1: { name: "Neon Meadows", width: 5120, flagX: 4860, build() { ... } },
-  2: { name: "The Voltage Vault", width: 4600, flagX: 4480, build() { ... } },
-};
-```
-
-`loadLevel(n)` wipes the world arrays and calls `LEVELS[n].build()`, then points
-`levelW`, `flag.x`, `CHECKPOINTS` and the visual `theme` at that level's values.
-Beat Level 1 and `win()` hands over to `nextLevel()` instead of "play again" —
-score and lives carry over, coins and the clock reset.
-
-**Keys & gates** (the new feature): a gate is a solid wall on the ground that
-gets skipped by collision until its key is collected. Keys are glowing circles
-you touch like coins; collecting one unlocks every gate with the same `label`:
-
-```js
-key(2575, 330, "A");      // this key...
-gate(2700, 300, "A");     // ...unlocks this gate
-```
-
-When a gate opens, an animation plays (the slats slide up and fade) and a new
-`sfx.gate()` buzzes. The HUD gained a 🔒/🔑 indicator and a Level readout.
-
-**Flyers** are a second enemy kind. They patrol horizontally like walkers, but
-their `y` also bobs on a sine wave (`e.y = e.baseY + sin(animTime * speed) * amp`),
-which makes gaps and key perches feel alive. They're drawn differently (a little
-lightning volt) via a `kind` field — same stomp rules as walkers.
+*Generated analysis · OpenCode (Neon Runner) · entry point `wsgi.py` → 45 lines of server code → 1,412 lines of game*
