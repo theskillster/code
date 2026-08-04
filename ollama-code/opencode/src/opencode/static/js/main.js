@@ -95,6 +95,10 @@
       tone(990, 0.16, "sine", 0.13, 0, 0.09);
     },
     gate: () => tone(200, 0.5, "sawtooth", 0.1, 360),
+    shoot: () => {
+      tone(150, 0.1, "sawtooth", 0.09, -70);
+      tone(760, 0.07, "square", 0.07, 0, 0.02);
+    },
     stomp: () => tone(220, 0.12, "square", 0.13, -90),
     hurt: () => tone(340, 0.3, "sawtooth", 0.14, -200),
     pause: () => tone(520, 0.08, "sine", 0.09),
@@ -168,6 +172,7 @@
   const platforms = [];
   const coins = [];
   const enemies = [];
+  const projectiles = [];
   const spikes = [];
   const keyItems = [];
   const gates = [];
@@ -194,6 +199,25 @@
       amp,
       bobSpeed,
       phase,
+    });
+  // Turret: stays planted (speed 0), tracks the player with its barrel and
+  // lobs plasma bolts whenever the player gets close enough.
+  const shooter = (x, min, max, interval = 2.4, boltSpeed = 310, cooldown = 1.3) =>
+    enemies.push({
+      x,
+      y: GROUND_Y - 34,
+      w: 40,
+      h: 34,
+      min,
+      max,
+      dir: 1,
+      speed: 0,
+      alive: true,
+      kind: "shooter",
+      interval,
+      boltSpeed,
+      cooldown,
+      aim: 0,
     });
   const spike = (x, w = 48) => spikes.push({ x, y: GROUND_Y - 16, w, h: 16 });
   const key = (x, y, label) => keyItems.push({ x, y, r: 12, label, taken: false });
@@ -317,6 +341,7 @@
 
         ground(1540, 360);
         spike(1630, 44);
+        shooter(1680, 1590, 1820, 2.6, 320); // plasma turret on the run-up
         flyer(1910, 1905, 1995, 390, 40, 2.0, 0); // guards the gap
 
         ground(2000, 400);
@@ -343,6 +368,7 @@
         plat(3470, 370, 100);
         key(3520, 350, "B");
         flyer(3490, 3470, 3570, 320, 35, 1.7, 4); // guards key B
+        shooter(3490, 3410, 3580, 2.4, 300); // second turret under key B
         gate(3600, 300, "B");
         spike(3680, 44);
         coin(3700, 430);
@@ -511,6 +537,7 @@
     platforms.length = 0;
     coins.length = 0;
     enemies.length = 0;
+    projectiles.length = 0;
     spikes.length = 0;
     keyItems.length = 0;
     gates.length = 0;
@@ -576,7 +603,7 @@
     sfx.level();
     showOverlay(
       `Level ${currentLevel} — ${LEVELS[currentLevel].name}`,
-      "New hazards: flying volts, spike landings, faster patrollers…<br>and <strong>locked gates</strong> that only open when you find their key.<br>Score and lives carry over from Level 1.",
+      "New hazards: flying volts, spike landings, faster patrollers,<br>and <strong>plasma turrets</strong> that track you with aimed bolts.<br>Locked gates only open when you find their key — score and lives carry over from Level 1.",
       "Enter ▶",
       enterLevel
     );
@@ -772,7 +799,7 @@
       if (g.opened && g.opening < 1) g.opening = Math.min(1, g.opening + dt * 2.2);
     }
 
-    // Enemies (patrol + stomp). Flyers also bob up and down.
+    // Enemies (patrol + stomp). Flyers bob up and down; shooters track and fire.
     for (const e of enemies) {
       if (!e.alive) continue;
       e.x += e.dir * e.speed * dt;
@@ -786,6 +813,31 @@
       }
       if (e.kind === "flyer") {
         e.y = e.baseY + Math.sin(animTime * e.bobSpeed + e.phase) * e.amp;
+      } else if (e.kind === "shooter") {
+        // Aim the barrel at the player; fire when they're in range and cooled
+        // down. Bolts spawn at the muzzle tip and fly toward the aim point.
+        e.cooldown -= dt;
+        const ecx = e.x + e.w / 2;
+        const ecy = e.y + e.h / 2;
+        const pcx = player.x + player.w / 2;
+        const pcy = player.y + player.h / 2;
+        e.aim = Math.atan2(pcy - ecy, pcx - ecx);
+        if (Math.abs(pcx - ecx) < 760 && Math.abs(pcy - ecy) < 280 && e.cooldown <= 0) {
+          e.cooldown = e.interval;
+          const bx = ecx + Math.cos(e.aim) * 28;
+          const by = ecy + Math.sin(e.aim) * 28;
+          projectiles.push({
+            x: bx,
+            y: by,
+            vx: Math.cos(e.aim) * e.boltSpeed,
+            vy: Math.sin(e.aim) * e.boltSpeed,
+            r: 7,
+            life: 2.6,
+            t: 0,
+          });
+          sfx.shoot();
+          burst(bx, by, 3);
+        }
       }
       if (player.invuln > 0) continue;
       if (overlap(player, e)) {
@@ -799,6 +851,48 @@
         } else {
           hurt();
         }
+      }
+    }
+
+    // Shooter bolts: fly straight, smash into walls/floors, hurt on contact.
+    // Landing on one (while falling) pops it for a small bonus.
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i];
+      p.t += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      let dead = p.t >= p.life || p.x < -40 || p.x > levelW + 40 || p.y < -40 || p.y > H + 40;
+      if (!dead) {
+        const pr = { x: p.x - p.r, y: p.y - p.r, w: p.r * 2, h: p.r * 2 };
+        for (const pl of platforms) {
+          if (overlap(pr, pl)) {
+            dead = true;
+            break;
+          }
+        }
+        if (!dead) {
+          for (const g of gates) {
+            if (!g.opened && overlap(pr, g)) {
+              dead = true;
+              break;
+            }
+          }
+        }
+      }
+      if (!dead && player.invuln <= 0 && circleRect(p.x, p.y, p.r, player)) {
+        const stomping = player.vy > 120 && player.y + player.h < p.y + p.r + 6;
+        if (stomping) {
+          player.vy = -JUMP_V * 0.45;
+          score += 10;
+          sfx.stomp();
+        } else {
+          hurt();
+        }
+        dead = true;
+      }
+      if (dead) {
+        burst(p.x, p.y, 5);
+        projectiles.splice(i, 1);
       }
     }
 
@@ -1102,8 +1196,72 @@
     ctx.restore();
   }
 
+  function drawShooter(e) {
+    const a = e.aim || 0;
+    const ready = e.cooldown <= 0.28; // muzzle glows right before firing
+    ctx.save();
+    ctx.translate(e.x + e.w / 2, e.y + e.h / 2);
+    // Barrel rotates to track the player.
+    ctx.save();
+    ctx.rotate(a);
+    ctx.fillStyle = "#9f1239";
+    roundRect(4, -4.5, 22, 9, 4);
+    ctx.fill();
+    ctx.fillStyle = ready ? "#fda4af" : "#fb7185";
+    ctx.beginPath();
+    ctx.arc(27, 0, ready ? 5 : 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // Aura + dome body.
+    ctx.fillStyle = "rgba(244,63,94,0.16)";
+    ctx.beginPath();
+    ctx.arc(0, 0, 21, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#be123c";
+    roundRect(-15, -12, 30, 22, 10);
+    ctx.fill();
+    ctx.fillStyle = "#fb7185";
+    roundRect(-11, -8, 22, 7, 4);
+    ctx.fill();
+    // Eye follows the aim.
+    ctx.fillStyle = "#fff1f2";
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * 2.5, Math.sin(a) * 2.5, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#0f172a";
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * 4, Math.sin(a) * 4, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawProjectile(p) {
+    const pulse = 1 + Math.sin(animTime * 20 + p.t * 26) * 0.18;
+    // Trail.
+    ctx.strokeStyle = "rgba(244,63,94,0.35)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(p.x - p.vx * 0.045, p.y - p.vy * 0.045);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    // Glow + core.
+    ctx.fillStyle = "rgba(244,63,94,0.22)";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * 2.1 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#f43f5e";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fecdd3";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * pulse * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   function drawEnemy(e) {
     if (e.kind === "flyer") drawFlyer(e);
+    else if (e.kind === "shooter") drawShooter(e);
     else drawWalker(e);
   }
 
@@ -1160,6 +1318,7 @@
     drawKeys();
     drawFlag();
     for (const e of enemies) if (e.alive) drawEnemy(e);
+    for (const p of projectiles) drawProjectile(p);
     drawParticles();
     if (state !== "over") drawPlayer();
 
@@ -1236,7 +1395,7 @@
   canvas.addEventListener("pointerdown", (e) => e.preventDefault());
 
   // Small dev hook so levels can be exercised from the console.
-  window.__neon = { playLevel, loadLevel, start, player };
+  window.__neon = { playLevel, loadLevel, start, player, enemies, projectiles };
 
   // Initial state.
   best = Math.max(best, 0);
@@ -1244,7 +1403,7 @@
   resetPlayer();
   showOverlay(
     "Neon Runner",
-    "Collect coins, stomp baddies, and reach the flag!<br>Two levels of neon action — Level 2 adds flying volts and locked gates.<br>Touch-friendly controls light up on mobile.",
+    "Collect coins, stomp baddies, and reach the flag!<br>Two levels of neon action — Level 2 adds flying volts, plasma turrets, and locked gates.<br>Touch-friendly controls light up on mobile.",
     "Start",
     start
   );
