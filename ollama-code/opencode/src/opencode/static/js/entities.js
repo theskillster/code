@@ -51,7 +51,7 @@ const Entities = (() => {
     CHECKPOINTS: [],
     theme: THEMES[1],
     currentLevel: 1,
-    totalLevels: 2,
+    totalLevels: 3,
     totalCoins: 0,
     animTime: 0,
     checkpoint: { x: 80, y: GROUND_Y - 46 },

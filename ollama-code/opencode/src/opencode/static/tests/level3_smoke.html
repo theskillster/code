@@ -135,6 +135,27 @@ check("sfx.life exists", typeof Audio.sfx.life === "function");
 Audio.playMusic(3);
 check("playMusic(3) starts without throwing", Audio.musicActive());
 // ---------------- end of task block ----------------
+// ---- Task 5: wiring ----
+check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
+window.__neon.playLevel(3);
+check("playLevel(3) enters level 3", Entities.gameState.currentLevel === 3 && Entities.gameState.state === "playing");
+check("level 3 starts its music", Audio.musicActive());
+Renderer.updateHUD();
+check("badge shows Sunflare Ridge", document.getElementById("level-name-badge").textContent === "Sunflare Ridge");
+// Win level 2 -> level 3 intro shows the darter copy.
+window.__neon.playLevel(2);
+p.x = 4860; p.y = Levels.GROUND_Y - 46; p.vy = 0; p.vx = 0; p.invuln = 10;
+Entities.update(0.016); // triggers onWin -> complete screen -> 2s countdown -> nextLevel
+setTimeout(() => {
+  const title = document.getElementById("overlay-title").textContent;
+  const text = document.getElementById("overlay-text").textContent;
+  check("level 3 intro shows after level 2 win", /Level 3/.test(title), title);
+  check("level 3 intro mentions darters", /darters/.test(text), text.slice(0, 60));
+  results.textContent = out.join("\n");
+}, 3200);
+// (The final print below runs immediately; the setTimeout re-prints ~3.2s
+// later with the two async checks.)
+// ---------------- end of task block ----------------
 results.textContent = out.join("\n");
 </script>
 </body>
