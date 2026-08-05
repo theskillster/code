@@ -227,6 +227,55 @@ Entities.update(0.016);
 check("ground tap under an orb does not fire the orb", !orbG.used, "used=" + orbG.used);
 // ---------------- end of task block ----------------
 
+// ---- Task 8: gap + overhang semantics (regression locks) ----
+// A gap with no ground under it: run into it → fall → death. Build a temporary
+// REAL pit from level 1's ground (test-only) so this lock is self-contained
+// and does not depend on Task 4/5's level redesigns.
+const gapFall = (() => {
+  window.__neon.loadLevel(1);
+  // Rebuild a tiny dedicated scene so the pit is real. Mutate the existing
+  // arrays in place — reassigning Levels.platforms would NOT affect the
+  // reference entities.js destructured at module load.
+  Levels.clearScene();
+  Levels.gaps.push({ x: 500, w: 120 });
+  Levels.platforms.push({ x: 0, y: Levels.GROUND_Y, w: 500, h: 60, kind: "ground" });
+  Levels.platforms.push({ x: 620, y: Levels.GROUND_Y, w: 200, h: 60, kind: "ground" });
+  const p = Entities.player;
+  p.x = 510; p.y = Levels.GROUND_Y - 46; p.vy = 0; p.onGround = true; p.invuln = 999;
+  Input.keys.jump = false;
+  Entities.gameState.dying = 0;
+  let died = false;
+  for (let i = 0; i < 300 && !died; i++) {
+    Entities.update(0.016);
+    if (Entities.gameState.dying > 0) died = true;
+  }
+  return died;
+})();
+check("running into a gap kills (fall death)", gapFall === true);
+// An elevated block is an overhang: running under is safe, jumping into it
+// kills. Exercise it all inside one function so a later loadLevel cannot wipe
+// the temporary block mid-test.
+const over = () => {
+  window.__neon.loadLevel(1);
+  Levels.clearScene();
+  Levels.platforms.push({ x: 0, y: Levels.GROUND_Y, w: 600, h: 60, kind: "ground" });
+  Levels.platforms.push({ x: 200, y: Levels.GROUND_Y - 90, w: 120, h: 24, kind: "block" });
+  const p = Entities.player;
+  p.x = 202; p.y = Levels.GROUND_Y - 46; p.vy = 0; p.onGround = true; p.invuln = 0;
+  Input.keys.jump = false;
+  Entities.gameState.dying = 0;
+  Entities.update(0.016); // stand under it for one frame
+  const runSafe = Entities.gameState.dying === 0;
+  Input.keys.jump = true;
+  for (let i = 0; i < 30 && Entities.gameState.dying === 0; i++) Entities.update(0.016);
+  const jumpKills = Entities.gameState.dying > 0;
+  Input.keys.jump = false;
+  return "runSafe=" + runSafe + " jumpKills=" + jumpKills;
+};
+const overRes = over();
+check("overhang: running under is safe, jumping into it kills", overRes === "runSafe=true jumpKills=true", overRes);
+// ---------------- end of task block ----------------
+
 // ---- Task 5 wiring (kept essentials) ----
 check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
 window.__neon.loadLevel(3);
