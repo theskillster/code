@@ -210,7 +210,11 @@ export const Levels = (() => {
         ground(2654, 4004 - 2654);
         gap(4004, 180);
         ground(4184, 6200 - 4184);
-        orb(4110, GROUND_Y - 80);
+        // Jump orb over Gap 2 at the player's pass height: a mid-air tap fires
+        // a re-jump that extends the arc (the tail is tuned on the extended
+        // landing phase ≈ 4270 + 204k). Optional — the pit is still clearable
+        // without it.
+        orb(4110, GROUND_Y - 122);
         spike(392);
         coinArc(420, 400, 3);
         block(596, GROUND_Y - 48);
@@ -246,28 +250,26 @@ export const Levels = (() => {
         coinArc(3560, 400, 3);
         block(3736, GROUND_Y - 48);
         coin(3760, GROUND_Y - 96);
-        // Gap 2 (4004–4184) with a jump orb floating over the pit.
-        // Post-gap-2 hazards on the ≈4196+204k cadence:
-        block(4298, GROUND_Y - 48);
-        coin(4322, GROUND_Y - 96);
-        spike(4502);
-        coinArc(4530, 400, 3);
-        block(4706, GROUND_Y - 48);
-        coin(4730, GROUND_Y - 96);
-        spike(4910);
-        coinArc(4940, 400, 3);
-        block(5114, GROUND_Y - 48);
-        coin(5138, GROUND_Y - 96);
-        spike(5318);
-        coinArc(5340, 400, 3);
-        block(5522, GROUND_Y - 48);
-        coin(5546, GROUND_Y - 96);
-        spike(5726);
-        coinArc(5750, 400, 3);
-        block(5930, GROUND_Y - 48);
-        coin(5954, GROUND_Y - 96);
-        spike(6134);
-        coinArc(6160, 400, 3);
+        // Gap 2 (4004–4184) with the jump orb above.
+        // Post-gap-2 hazards on the orb-extended ≈4270+204k cadence:
+        block(4372, GROUND_Y - 48);
+        coin(4396, GROUND_Y - 96);
+        spike(4576);
+        coinArc(4600, 400, 3);
+        block(4780, GROUND_Y - 48);
+        coin(4804, GROUND_Y - 96);
+        spike(4984);
+        coinArc(5010, 400, 3);
+        block(5188, GROUND_Y - 48);
+        coin(5212, GROUND_Y - 96);
+        spike(5392);
+        coinArc(5420, 400, 3);
+        block(5596, GROUND_Y - 48);
+        coin(5620, GROUND_Y - 96);
+        spike(5800);
+        coinArc(5820, 400, 3);
+        block(6004, GROUND_Y - 48);
+        coin(6028, GROUND_Y - 96);
       },
     },
   };
