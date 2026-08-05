@@ -1,5 +1,12 @@
 # OpenCode — Main Executable Explained
 
+> **⚠ Stale — historical document.** This walkthrough describes the **original**
+> monolithic engine (single `main.js`, 1,412 lines) and the pre-refactor server
+> layout (45 lines, `flask --app wsgi run`). The game now lives across **six
+> ES modules** under `src/opencode/static/js/` and the server runs via
+> `uv run opencode` (Waitress). See `MODULES.md` and `README.md` for the
+> current architecture. Kept for the game-design narrative.
+
 > **Project:** OpenCode (Neon Runner) — a Flask web app that serves a playable 2D canvas platformer.  
 > **Entry point:** `wsgi.py` (7 lines)  
 > **Server code total:** 45 lines across 4 files  

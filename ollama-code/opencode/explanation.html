@@ -266,6 +266,15 @@
 
 <div class="wrap">
 
+  <div style="max-width:1080px;margin:24px auto 0;padding:0 24px">
+    <div class="callout warn"><div class="ct">⚠ Stale — historical document</div>
+    This page describes the <b>original</b> monolithic engine (single <code>main.js</code>, 1,412 lines)
+    and the pre-refactor server layout (<code>flask --app wsgi run</code>). The game now lives across
+    <b>six ES modules</b> under <code>src/opencode/static/js/</code> and the server runs via
+    <code>uv run opencode</code> (Waitress). See <code>MODULES.md</code> and <code>README.md</code> for the
+    current architecture. Kept for the game-design narrative.</div>
+  </div>
+
   <header class="hero reveal vis">
     <span class="kicker">Code Analysis · wsgi.py</span>
     <h1><span class="g1">The main executable</span> — <span class="g2">explained, visually</span></h1>

@@ -83,7 +83,7 @@ templates/base.html      — layout shell (single <script type="module">)
 templates/index.html     — game page markup
 ```
 
-Backend total: ~50 lines across 5 files. Run it with **one command**:
+Backend Python total: **50 lines** across 3 files (`wsgi.py` 8 + `__init__.py` 34 + `routes.py` 8). Run it with **one command**:
 
 ```sh
 uv run opencode --port 5000

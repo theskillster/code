@@ -1,6 +1,6 @@
 // OpenCode — Game (orchestrator: state machine, flow control, game loop, wiring)
-// Depends on: Audio, Input, Levels, Entities, Renderer (all loaded before this)
-// This is the main coordinator — it wires everything together and starts the loop.
+// Side-effect module: imports the other five modules, wires everything
+// together, and starts the loop. Imported by main.js and the test runner.
 
 import { Audio } from "./audio.js";
 import { Input } from "./input.js";
@@ -8,7 +8,7 @@ import { Levels } from "./levels.js";
 import { Entities } from "./entities.js";
 import { Renderer } from "./renderer.js";
 
-export const Game = (() => {
+(() => {
   "use strict";
 
   const { ensureAudio, sfx, isSoundOn, toggleSound, playMusic, pauseMusic, stopMusic } = Audio;
