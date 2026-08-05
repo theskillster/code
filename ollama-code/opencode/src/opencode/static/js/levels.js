@@ -203,10 +203,13 @@ export const Levels = (() => {
       name: "Sunflare Ridge",
       width: 6200,
       build() {
-        ground(0, 6200);
-        // Timing-hazard fixtures (data only for now — gameplay unchanged until
-        // Task 5 splits the ground and Task 6 renders them).
+        // Two timing gaps (hold landings ≈2534 and ≈4042 fall into the pits),
+        // an overhang you must run under, and a jump orb floating over Gap 2.
+        ground(0, 2474);
         gap(2474, 180);
+        ground(2654, 4004 - 2654);
+        gap(4004, 180);
+        ground(4184, 6200 - 4184);
         orb(4110, GROUND_Y - 80);
         spike(392);
         coinArc(420, 400, 3);
@@ -230,48 +233,41 @@ export const Levels = (() => {
         coinArc(2050, 400, 3);
         block(2228, GROUND_Y - 48);
         coin(2252, GROUND_Y - 96);
-        spike(2408);
-        spike(2456);
-        coinArc(2500, 400, 3);
-        block(2636, GROUND_Y - 48);
-        coin(2660, GROUND_Y - 96);
-        spike(2840);
-        coinArc(2870, 400, 3);
-        block(3044, GROUND_Y - 48);
-        coin(3068, GROUND_Y - 96);
-        spike(3224);
-        spike(3272);
-        coinArc(3320, 400, 3);
-        block(3452, GROUND_Y - 48);
-        coin(3476, GROUND_Y - 96);
-        spike(3656);
-        coinArc(3680, 400, 3);
-        block(3860, GROUND_Y - 48);
-        coin(3884, GROUND_Y - 96);
-        spike(4040);
-        spike(4088);
-        coinArc(4140, 400, 3);
-        block(4268, GROUND_Y - 48);
-        coin(4292, GROUND_Y - 96);
-        spike(4472);
-        coinArc(4500, 400, 3);
-        block(4676, GROUND_Y - 48);
-        coin(4700, GROUND_Y - 96);
-        spike(4856);
-        spike(4904);
-        coinArc(4950, 400, 3);
-        block(5084, GROUND_Y - 48);
-        coin(5108, GROUND_Y - 96);
-        spike(5288);
-        coinArc(5310, 400, 3);
-        block(5492, GROUND_Y - 48);
-        coin(5516, GROUND_Y - 96);
-        spike(5696);
-        coinArc(5720, 400, 3);
-        block(5900, GROUND_Y - 48);
-        coin(5924, GROUND_Y - 96);
-        spike(6104);
-        coinArc(6130, 400, 3);
+        // Gap 1 (2474–2654): release before it and re-jump over the pit.
+        // Post-gap hazards on the ≈2666+204k cadence — no hazard in the
+        // overhang run path (the timed policy releases from the 2870 landing).
+        spike(2768);
+        spike(2816);
+        // Overhang at mid-arc ≈3176: jump into the underside = death,
+        // run underneath = safe (20px headroom).
+        block(3106, GROUND_Y - 90, 120, 24);
+        // Post-overhang hazards on the ≈3430+204k cadence:
+        spike(3532);
+        coinArc(3560, 400, 3);
+        block(3736, GROUND_Y - 48);
+        coin(3760, GROUND_Y - 96);
+        // Gap 2 (4004–4184) with a jump orb floating over the pit.
+        // Post-gap-2 hazards on the ≈4196+204k cadence:
+        block(4298, GROUND_Y - 48);
+        coin(4322, GROUND_Y - 96);
+        spike(4502);
+        coinArc(4530, 400, 3);
+        block(4706, GROUND_Y - 48);
+        coin(4730, GROUND_Y - 96);
+        spike(4910);
+        coinArc(4940, 400, 3);
+        block(5114, GROUND_Y - 48);
+        coin(5138, GROUND_Y - 96);
+        spike(5318);
+        coinArc(5340, 400, 3);
+        block(5522, GROUND_Y - 48);
+        coin(5546, GROUND_Y - 96);
+        spike(5726);
+        coinArc(5750, 400, 3);
+        block(5930, GROUND_Y - 48);
+        coin(5954, GROUND_Y - 96);
+        spike(6134);
+        coinArc(6160, 400, 3);
       },
     },
   };

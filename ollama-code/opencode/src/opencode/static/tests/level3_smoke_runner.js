@@ -361,6 +361,15 @@ const overRes = over();
 check("overhang: running under is safe, jumping into it kills", overRes === "runSafe=true jumpKills=true", overRes);
 // ---------------- end of task block ----------------
 
+// ---- Task 9: level 3 timing checks ----
+const h3 = simulateHold(3);
+check("level 3 hold-jump CANNOT clear it (requires timing)", !h3.won && h3.deaths > 0,
+  "won=" + h3.won + " deaths=" + h3.deaths + " deathXs=" + h3.deathXs.join(","));
+const t3 = simulateTimed(3);
+check("level 3 timed-policy beats it with 0 deaths", t3.won && t3.deaths === 0,
+  "won=" + t3.won + " deaths=" + t3.deaths + " deathXs=" + t3.deathXs.join(","));
+// ---------------- end of task block ----------------
+
 // ---- Task 5 wiring (kept essentials) ----
 check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
 window.__neon.loadLevel(3);
