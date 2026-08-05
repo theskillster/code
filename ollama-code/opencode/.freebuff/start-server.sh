@@ -1,8 +1,7 @@
 #!/bin/bash
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
-export PYTHONPATH=src
-/Users/sajid/Documents/code/code/ollama-code/opencode/.venv/bin/python -c "
-from opencode import create_app
-app = create_app()
-app.run(port=5000, debug=False, use_reloader=False)
-"
+# OpenCode dev server — single reliable command. Prefers Waitress (macOS-safe).
+# Usage: ./start-server.sh [port]
+set -euo pipefail
+cd "$(dirname "$0")/.."
+PORT="${1:-5000}"
+exec uv run opencode --host 127.0.0.1 --port "$PORT"
