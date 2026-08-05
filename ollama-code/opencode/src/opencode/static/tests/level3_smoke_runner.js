@@ -142,36 +142,119 @@ for (let i = 0; i < 10 && !p5.onGround; i++) Entities.update(0.016);
 check("cube angle snaps to 90 on landing", p5.angle % 90 === 0, "angle=" + p5.angle);
 // ---------------- end of task block ----------------
 
-// ---- Hold-jump beatability simulation ----
-// A pure-hold run of each level must reach the finish with ZERO deaths.
+// ---- Timing-aware beatability simulation ----
+// A level must (a) NOT be clearable by pure hold (it requires timing) and
+// (b) BE clearable by a deterministic timed policy (it is fair/beatable).
 // The live game loop runs on requestAnimationFrame (≈60Hz), so we simulate
 // at dt = 1/60 — NOT an arbitrary 0.016s — because the jump physics are
 // frame-quantized and the landing cadence shifts with dt. This is what
 // catches hazards sitting on the in-game landing cadence (≈ 86 + 204k),
 // which the reachability BFS cannot see.
 const SIM_DT = 1 / 60;
+const FLAT = 204; // measured flat-jump landing distance at dt=1/60
 Input.keys.jump = false;
-for (const lvl of [1, 2, 3]) {
+
+function simulateHold(lvl) {
   window.__neon.playLevel(lvl);
   Input.keys.jump = true; // hold to bounce
   Entities.gameState.dying = 0;
   let frames = 0;
   const maxFrames = Math.ceil(Entities.gameState.levelW / Entities.AUTO_SPEED / SIM_DT) + 200;
   let deaths = 0;
+  const deathXs = [];
   let lastA = Entities.gameState.attempts;
   while (frames < maxFrames && Entities.gameState.state === "playing") {
     Entities.update(SIM_DT);
     frames++;
     if (Entities.gameState.attempts !== lastA) {
       deaths++;
+      deathXs.push(Math.round(Entities.player.x));
       lastA = Entities.gameState.attempts;
     }
   }
-  const won = Entities.gameState.state === "win";
-  check("level " + lvl + " hold-jump beats it with 0 deaths (dt=" + SIM_DT.toFixed(4) + ")", won && deaths === 0,
-    "won=" + won + " deaths=" + deaths + " frames=" + frames);
   Input.keys.jump = false;
+  return { won: Entities.gameState.state === "win", deaths, deathXs };
 }
+
+// Deterministic timed policy: reads the real level data.
+// - Grounded: hold (jump) unless the next landing lands in a gap OR the jump
+//   would launch the cube into an overhang (elevated block) — then release
+//   and run past it.
+// - Airborne: tap when an unused orb is within tap range.
+function overhangAhead(p) {
+  const groundedTop = Levels.GROUND_Y - 46;
+  const apexTop = groundedTop - (Entities.JUMP_V * Entities.JUMP_V) / (2 * Entities.GRAV);
+  for (const b of Levels.platforms) {
+    if (b.kind !== "block") continue;
+    const under = b.y + b.h;          // underside y (smaller = higher)
+    if (under <= apexTop) continue;   // jump fully clears it — not an overhang
+    if (under >= groundedTop) continue; // sits on the ground (normal block) — hop over
+    // horizontal sweep of a jump launched from p.x: [p.x, p.x + 34 + FLAT]
+    if (p.x < b.x + b.w && p.x + 34 + FLAT > b.x) return true;
+  }
+  return false;
+}
+
+function simulateTimed(lvl) {
+  window.__neon.playLevel(lvl);
+  Input.keys.jump = false;
+  Entities.gameState.dying = 0;
+  let frames = 0;
+  const maxFrames = Math.ceil(Entities.gameState.levelW / Entities.AUTO_SPEED / SIM_DT) + 400;
+  let deaths = 0;
+  const deathXs = [];
+  let lastA = Entities.gameState.attempts;
+  const tappedOrbs = new Set();
+  while (frames < maxFrames && Entities.gameState.state === "playing") {
+    const p = Entities.player;
+    if (p.onGround) {
+      const landX = p.x + FLAT;
+      // Release while the next landing is inside the pit OR within 12px of its
+      // far edge; re-jump only when the landing lands 12px+ past the far edge.
+      const inGap = Levels.gaps.some((g) => landX > g.x && landX < g.x + g.w + 12);
+      Input.keys.jump = !(inGap || overhangAhead(p));
+    } else {
+      const orb = Levels.orbs.find((o) => !o.used && !tappedOrbs.has(o) &&
+        Math.abs(o.x - (p.x + p.w / 2)) < o.r + 14 &&
+        Math.abs(o.y - (p.y + p.h / 2)) < o.r + 14);
+      if (orb) {
+        Input.keys.jump = false;
+        Input.setKey("Space", true); // fresh tap edge → jumpBuffer → updateOrbs
+        tappedOrbs.add(orb);
+      }
+    }
+    Entities.update(SIM_DT);
+    frames++;
+    if (Entities.gameState.attempts !== lastA) {
+      deaths++;
+      deathXs.push(Math.round(Entities.player.x));
+      lastA = Entities.gameState.attempts;
+    }
+  }
+  Input.keys.jump = false;
+  return { won: Entities.gameState.state === "win", deaths, deathXs };
+}
+
+// Level 1 stays the hold-clearable control (no timing hazards yet).
+const h1 = simulateHold(1);
+check("level 1 hold-jump still beats it with 0 deaths (control)", h1.won && h1.deaths === 0,
+  "won=" + h1.won + " deaths=" + h1.deaths);
+const t1 = simulateTimed(1);
+check("level 1 timed-policy beats it with 0 deaths", t1.won && t1.deaths === 0,
+  "won=" + t1.won + " deaths=" + t1.deaths);
+
+// Level 2 now REQUIRES timing: hold dies, timed policy wins.
+const h2 = simulateHold(2);
+check("level 2 hold-jump CANNOT clear it (requires timing)", !h2.won && h2.deaths > 0,
+  "won=" + h2.won + " deaths=" + h2.deaths + " deathXs=" + h2.deathXs.join(","));
+const t2 = simulateTimed(2);
+check("level 2 timed-policy beats it with 0 deaths", t2.won && t2.deaths === 0,
+  "won=" + t2.won + " deaths=" + t2.deaths + " deathXs=" + t2.deathXs.join(","));
+
+// Level 3 (redesigned in Task 5) gets its checks there; for now assert data only.
+window.__neon.loadLevel(3); // reload so we inspect level 3's data, not the sim's last level
+check("level 3 has at least one gap", Levels.LEVELS[3] && Levels.gaps.length > 0,
+  "gaps=" + Levels.gaps.length);
 // ---------------- end of task block ----------------
 
 // ---- Task 6: timing-hazard data API ----
@@ -282,5 +365,9 @@ window.__neon.loadLevel(3);
 Renderer.updateHUD();
 check("badge shows Sunflare Ridge", document.getElementById("level-name-badge").textContent === "Sunflare Ridge",
   document.getElementById("level-name-badge").textContent);
+// The sims above WIN levels, which arms a ~2s auto-advance overlay timer in
+// game.js's loop. Reset to level 1 so a pending nextLevel() lands on a valid
+// level (LEVELS[2]) instead of crashing on LEVELS[4] after the checks finish.
+window.__neon.playLevel(1);
 
 results.textContent = out.join("\n");

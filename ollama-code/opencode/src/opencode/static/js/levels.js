@@ -149,7 +149,11 @@ export const Levels = (() => {
       name: "The Voltage Vault",
       width: 5100,
       build() {
-        ground(0, 5100);
+        // Timing gap at 2862 (a pure-hold landing at ≈2942 falls into the pit):
+        // release before it and re-jump so the arc clears the far edge (3042).
+        ground(0, 2862);
+        gap(2862, 180);
+        ground(3042, 5100 - 3042);
         spike(392);
         coinArc(420, 400, 3);
         block(596, GROUND_Y - 48);
@@ -174,28 +178,25 @@ export const Levels = (() => {
         coinArc(2470, 400, 3);
         block(2636, GROUND_Y - 48);
         coin(2660, GROUND_Y - 96);
-        spike(2840);
-        coinArc(2870, 400, 3);
-        block(3044, GROUND_Y - 48);
-        coin(3068, GROUND_Y - 96);
-        spike(3248);
-        coinArc(3270, 400, 3);
-        block(3452, GROUND_Y - 48);
-        coin(3476, GROUND_Y - 96);
-        spike(3656);
-        coinArc(3680, 400, 3);
-        block(3860, GROUND_Y - 48);
-        coin(3884, GROUND_Y - 96);
-        spike(4064);
-        coinArc(4090, 400, 3);
-        block(4268, GROUND_Y - 48);
-        coin(4292, GROUND_Y - 96);
-        spike(4472);
-        coinArc(4500, 400, 3);
-        block(4676, GROUND_Y - 48);
-        coin(4700, GROUND_Y - 96);
-        spike(4880);
-        coinArc(4910, 400, 3);
+        // Post-gap hazards re-centered on the new cadence (landings ≈ 3054 + 204k).
+        spike(3360);
+        coinArc(3384, 400, 3);
+        block(3564, GROUND_Y - 48);
+        coin(3588, GROUND_Y - 96);
+        spike(3768);
+        coinArc(3792, 400, 3);
+        block(3972, GROUND_Y - 48);
+        coin(3996, GROUND_Y - 96);
+        spike(4176);
+        coinArc(4200, 400, 3);
+        block(4380, GROUND_Y - 48);
+        coin(4404, GROUND_Y - 96);
+        spike(4584);
+        coinArc(4610, 400, 3);
+        block(4788, GROUND_Y - 48);
+        coin(4812, GROUND_Y - 96);
+        spike(4992);
+        coinArc(5020, 400, 3);
       },
     },
     3: {
