@@ -1,0 +1,6 @@
+{
+  "name": "opencode-static",
+  "private": true,
+  "type": "module",
+  "description": "Marks static/js and static/tests as ES modules so Node can import them for the headless smoke harness (level3_smoke_node.mjs). Inert for the browser and the Flask server."
+}
