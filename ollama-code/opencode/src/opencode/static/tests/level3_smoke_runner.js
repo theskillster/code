@@ -174,6 +174,22 @@ for (const lvl of [1, 2, 3]) {
 }
 // ---------------- end of task block ----------------
 
+// ---- Task 6: timing-hazard data API ----
+check("Levels.gaps and orbs exist", Array.isArray(Levels.gaps) && Array.isArray(Levels.orbs),
+  "gaps=" + (Levels.gaps && Levels.gaps.length) + " orbs=" + (Levels.orbs && Levels.orbs.length));
+check("clearScene empties gaps and orbs", (() => {
+  Levels.clearScene();
+  return Levels.gaps.length === 0 && Levels.orbs.length === 0;
+})(), "gaps=" + Levels.gaps.length + " orbs=" + Levels.orbs.length);
+window.__neon.loadLevel(3);
+check("level 3 gap() builder creates a gap", Levels.gaps.some((g) => g.x === 2474 && g.w === 180),
+  JSON.stringify(Levels.gaps.slice(0, 3)));
+check("level 3 orb() builder creates an orb", Levels.orbs.some((o) => o.x === 4110 && o.r === 18),
+  JSON.stringify(Levels.orbs.slice(0, 3)));
+check("gap width is within jump range", Levels.gaps.every((g) => g.w <= 180),
+  Levels.gaps.map((g) => g.w).join(","));
+// ---------------- end of task block ----------------
+
 // ---- Task 5 wiring (kept essentials) ----
 check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
 window.__neon.loadLevel(3);

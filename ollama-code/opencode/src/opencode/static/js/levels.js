@@ -18,6 +18,8 @@ export const Levels = (() => {
   const platforms = [];
   const coins = [];
   const spikes = [];
+  const gaps = [];
+  const orbs = [];
   const flag = { x: 0 };
 
   // --- Level builder helpers ---
@@ -28,6 +30,11 @@ export const Levels = (() => {
   const coinArc = (cx, cy, n) => {
     for (let i = 0; i < n; i++) coin(cx + i * 34, cy - Math.sin((i / (n - 1)) * Math.PI) * 46);
   };
+  // A pit in the ground — falling in kills (updateBoundaries). Data-only:
+  // build() must split ground() around it for it to be lethal. Max 180px.
+  const gap = (x, w) => gaps.push({ x, w });
+  // Mid-air jump orb: tap while overlapping to re-jump mid-flight. One-shot.
+  const orb = (x, y) => orbs.push({ x, y, r: 18, used: false });
 
   // --- Themes ---
   // GD neon palettes; per-level themes override the base.
@@ -196,6 +203,10 @@ export const Levels = (() => {
       width: 6200,
       build() {
         ground(0, 6200);
+        // Timing-hazard fixtures (data only for now — gameplay unchanged until
+        // Task 5 splits the ground and Task 6 renders them).
+        gap(2474, 180);
+        orb(4110, GROUND_Y - 80);
         spike(392);
         coinArc(420, 400, 3);
         block(596, GROUND_Y - 48);
@@ -299,11 +310,13 @@ export const Levels = (() => {
     platforms.length = 0;
     coins.length = 0;
     spikes.length = 0;
+    gaps.length = 0;
+    orbs.length = 0;
   }
 
   return {
     GROUND_H, GROUND_Y, LEVEL_MAX_W, W, H, TILE,
-    platforms, coins, spikes, flag,
+    platforms, coins, spikes, gaps, orbs, flag,
     stars, clouds,
     THEMES, LEVELS,
     clearScene, coinArc,
