@@ -162,15 +162,17 @@ function simulateHold(lvl) {
   const maxFrames = Math.ceil(Entities.gameState.levelW / Entities.AUTO_SPEED / SIM_DT) + 200;
   let deaths = 0;
   const deathXs = [];
-  let lastA = Entities.gameState.attempts;
+  let prevDying = Entities.gameState.dying;
   while (frames < maxFrames && Entities.gameState.state === "playing") {
     Entities.update(SIM_DT);
     frames++;
-    if (Entities.gameState.attempts !== lastA) {
+    // onHurt fires BEFORE the beat/respawn, so a dying 0→>0 transition captures
+    // the player still at the death spot (attempts increments later, post-respawn).
+    if (prevDying <= 0.01 && Entities.gameState.dying > 0.2) {
       deaths++;
       deathXs.push(Math.round(Entities.player.x));
-      lastA = Entities.gameState.attempts;
     }
+    prevDying = Entities.gameState.dying;
   }
   Input.keys.jump = false;
   return { won: Entities.gameState.state === "win", deaths, deathXs };
@@ -203,7 +205,7 @@ function simulateTimed(lvl) {
   const maxFrames = Math.ceil(Entities.gameState.levelW / Entities.AUTO_SPEED / SIM_DT) + 400;
   let deaths = 0;
   const deathXs = [];
-  let lastA = Entities.gameState.attempts;
+  let prevDying = Entities.gameState.dying;
   const tappedOrbs = new Set();
   while (frames < maxFrames && Entities.gameState.state === "playing") {
     const p = Entities.player;
@@ -225,11 +227,11 @@ function simulateTimed(lvl) {
     }
     Entities.update(SIM_DT);
     frames++;
-    if (Entities.gameState.attempts !== lastA) {
+    if (prevDying <= 0.01 && Entities.gameState.dying > 0.2) {
       deaths++;
       deathXs.push(Math.round(Entities.player.x));
-      lastA = Entities.gameState.attempts;
     }
+    prevDying = Entities.gameState.dying;
   }
   Input.keys.jump = false;
   return { won: Entities.gameState.state === "win", deaths, deathXs };
