@@ -19,10 +19,7 @@ export const Renderer = (() => {
   ctx.scale(dpr, dpr);
 
   const {
-    GROUND_H, GROUND_Y,
-    platforms, coins, spikes, flag,
-    stars, clouds,
-    THEMES,
+    platforms, coins, spikes, THEMES,
   } = Levels;
 
   const { player, gameState, particles, overlap } = Entities;

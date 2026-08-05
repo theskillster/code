@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GD Style Prototype — Neon Runner (Sunflare Ridge)</title>
+<style>
+  :root {
+    --bg0: #07070f;
+    --bg1: #0d0d1c;
+    --panel: #131326;
+    --border: #262642;
+    --fg: #e8ecf6;
+    --muted: #8b93b0;
+    --green: #4ade80;
+    --cyan: #22d3ee;
+    --fuchsia: #e879f9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1000px 500px at 80% -10%, rgba(74,222,128,0.09), transparent 60%),
+                radial-gradient(800px 400px at 10% 20%, rgba(232,121,249,0.06), transparent 60%),
+                linear-gradient(180deg, var(--bg0), var(--bg1));
+    color: var(--fg);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; letter-spacing: -0.01em; }
+  header h1 .gd { background: linear-gradient(90deg, var(--green), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  header p { margin: 0 0 18px; color: var(--muted); font-size: 0.92rem; max-width: 60rem; }
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .controls .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+  button.c {
+    font: inherit; font-size: 0.82rem; cursor: pointer; color: var(--fg);
+    background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 14px; transition: all 0.14s ease;
+  }
+  button.c:hover { border-color: var(--green); transform: translateY(-1px); }
+  button.c.on { color: #06120c; background: var(--green); border-color: var(--green); font-weight: 700; }
+  button.c.on.t-purple { background: var(--fuchsia); border-color: var(--fuchsia); }
+  button.c.on.t-cyan { background: var(--cyan); border-color: var(--cyan); }
+  .shell {
+    border: 1px solid var(--border); border-radius: 16px; background: var(--panel);
+    padding: 12px; box-shadow: 0 24px 70px rgba(0,0,0,0.5);
+  }
+  .hud { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .hud-item {
+    background: rgba(10,10,24,0.8); border: 1px solid var(--border); border-radius: 10px;
+    padding: 5px 12px; min-width: 86px;
+  }
+  .hud-item .l { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+  .hud-item .v { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .progress {
+    flex: 1 1 200px; display: flex; align-items: center;
+    background: rgba(10,10,24,0.8); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 8px; min-width: 180px;
+  }
+  .progress .track { width: 100%; height: 9px; border-radius: 999px; background: #0b0b1a; overflow: hidden; }
+  .progress .fill { height: 100%; width: 0%; border-radius: 999px; transition: width 0.08s linear; }
+  .canvas-wrap { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  canvas { display: block; width: 100%; height: auto; }
+  .toast {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(10,10,24,0.85); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 16px; font-size: 0.85rem; color: var(--muted); pointer-events: none;
+    opacity: 0; transition: opacity 0.2s ease;
+  }
+  .toast.show { opacity: 1; }
+  footer { margin-top: 16px; color: var(--muted); font-size: 0.82rem; }
+  footer kbd {
+    font-family: inherit; background: var(--panel); border: 1px solid var(--border);
+    border-bottom-width: 2px; border-radius: 6px; padding: 1px 7px; font-size: 0.8em; color: #cdd6ea;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Geometry Dash style prototype — <span class="gd">Sunflare Ridge</span></h1>
+    <p>Scratch page to tune the <em>feel</em> before touching the game modules. Same physics as the plan
+       (auto-run 340 px/s, fixed jump −700, gravity 2300, tile 48). Tap to jump — hold to keep bouncing.
+       Spikes and block <em>sides</em> kill; block tops are safe. Death restarts instantly.
+       Press <kbd>Space</kbd> once to start the <em>thumping</em> BGM.</p>
+  </header>
+
+  <div class="controls">
+    <span class="lbl">Theme</span>
+    <button class="c t-cyan" id="th-1" type="button">Cyan · Neon Meadows</button>
+    <button class="c t-purple" id="th-2" type="button">Purple · Voltage Vault</button>
+    <button class="c on" id="th-3" type="button">Green · Sunflare Ridge</button>
+    <span class="lbl" style="margin-left:10px">BPM</span>
+    <button class="c" id="bpm-120" type="button">120</button>
+    <button class="c on" id="bpm-140" type="button">140</button>
+    <button class="c" id="bpm-160" type="button">160</button>
+    <button class="c on" id="btn-sound" type="button">🎵 thumping BGM</button>
+    <button class="c" id="btn-restart" type="button">↻ Restart level</button>
+  </div>
+
+  <div class="shell">
+    <div class="hud">
+      <div class="hud-item"><div class="l">Attempts</div><div class="v" id="h-attempts">0</div></div>
+      <div class="hud-item"><div class="l">Coins</div><div class="v" id="h-coins">0 / 30</div></div>
+      <div class="hud-item"><div class="l">Best</div><div class="v" id="h-best">—</div></div>
+      <div class="progress">
+        <div class="track"><div class="fill" id="h-progress" style="background:linear-gradient(90deg,#4ade80,#a78bfa)"></div></div>
+      </div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="c" width="960" height="540"></canvas>
+      <div class="toast" id="toast">died · attempt</div>
+    </div>
+  </div>
+
+  <footer>
+    <kbd>Space</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> / click — jump (hold to keep bouncing) · first press starts the BGM ·
+    <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> themes · <kbd>M</kbd> music · <kbd>R</kbd> restart · <kbd>P</kbd> pause
+  </footer>
+</div>
+
+<script>
+"use strict";
+(() => {
+  const W = 960, H = 540;
+  const GRAV = 2300, AUTO = 340, JUMP_V = 700, MAX_FALL = 1300, TILE = 48;
+  const GROUND_Y = H - 60;
+
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    attempts: $("h-attempts"), coins: $("h-coins"), best: $("h-best"),
+    progress: $("h-progress"), toast: $("toast"),
+  };
+
+  // ---------- themes ----------
+  const THEMES = {
+    1: { sky: ["#0a0a14", "#12122a", "#1c1c3c"], glow: "#22d3ee", grid: "rgba(148,163,184,0.10)",
+         groundTop: "#1a1a30", groundBody: "#10101f", groundEdge: "#22d3ee",
+         blockBody: "#16213e", blockEdge: "#22d3ee", spike: "#f43f5e",
+         cube: "#22d3ee", cubeInner: "#a5f3fc", trail: "rgba(34,211,238,0.75)" },
+    2: { sky: ["#14061f", "#1f0b33", "#2a1145"], glow: "#e879f9", grid: "rgba(192,132,252,0.10)",
+         groundTop: "#241040", groundBody: "#150825", groundEdge: "#e879f9",
+         blockBody: "#2b1246", blockEdge: "#e879f9", spike: "#f97316",
+         cube: "#e879f9", cubeInner: "#f5d0fe", trail: "rgba(232,121,249,0.75)" },
+    3: { sky: ["#0c1a12", "#12331f", "#16402a"], glow: "#4ade80", grid: "rgba(74,222,128,0.09)",
+         groundTop: "#0f2b1d", groundBody: "#0a1f14", groundEdge: "#4ade80",
+         blockBody: "#123425", blockEdge: "#4ade80", spike: "#fbbf24",
+         cube: "#4ade80", cubeInner: "#bbf7d0", trail: "rgba(74,222,128,0.75)" },
+  };
+  let theme = THEMES[3]; // green Sunflare Ridge is the chosen look
+
+  // ---------- level (full green gauntlet, ~6200px) ----------
+  // Obstacles placed on the verified hold cadence (landings at 80+207k) so
+  // spikes/blocks are cleared by the natural bounce; pits are timed jumps.
+  const platforms = [];
+  const spikes = [];
+  const coins = [];
+  const ground = (x, w) => platforms.push({ x, y: GROUND_Y, w, h: 60, kind: "ground" });
+  const block = (x, y, w = 48, h = 48) => platforms.push({ x, y, w, h, kind: "block" });
+  const spike = (x) => spikes.push({ x, y: GROUND_Y - 16, w: 48, h: 16 });
+  const coin = (x, y) => coins.push({ x, y, r: 11, taken: false });
+  const coinArc = (cx, cy, n) => { for (let i = 0; i < n; i++) coin(cx + i * 34, cy - Math.sin((i / (n - 1)) * Math.PI) * 46); };
+  const LEVEL_W = 6200;
+
+  function buildLevel() {
+    platforms.length = 0; spikes.length = 0; coins.length = 0;
+    // Sections are sized so every landing point (≈80+207k, drift +15-20px) lands
+    // on a ground segment, and pits sit between landing points. Spikes/blocks are
+    // placed mid-arc — clear of both the take-off and landing feet — so a holding
+    // player clears every hazard (timed taps only needed for pits).
+    ground(0, 968);
+    spike(580); coinArc(640, 400, 3);
+    block(810, GROUND_Y - 48); coin(834, GROUND_Y - 96);
+    ground(1060, 776);
+    spike(1210); coinArc(1270, 400, 3);
+    block(1450, GROUND_Y - 48); coin(1474, GROUND_Y - 96);
+    ground(1880, 784);
+    spike(2040); coinArc(2090, 400, 3);
+    block(2280, GROUND_Y - 48); coin(2304, GROUND_Y - 96);
+    spike(2450); coinArc(2490, 400, 3);
+    ground(2720, 772);
+    block(2900, GROUND_Y - 48); coin(2924, GROUND_Y - 96);
+    spike(3080); coinArc(3130, 400, 3);
+    ground(3560, 760);
+    spike(3700); coinArc(3770, 400, 3);
+    block(3950, GROUND_Y - 48); coin(3974, GROUND_Y - 96);
+    spike(4060); coinArc(4130, 400, 3);
+    ground(4370, 778);
+    block(4520, GROUND_Y - 48); coin(4544, GROUND_Y - 96);
+    block(4680, GROUND_Y - 48); coin(4704, GROUND_Y - 96);
+    spike(4880); coinArc(4950, 400, 3);
+    ground(5200, 748);
+    spike(5280); coinArc(5350, 400, 3);
+    ground(5948, 252);
+    coinArc(6000, 380, 3); coinArc(6080, 340, 4);
+  }
+
+  // ---------- state ----------
+  const player = { x: 80, y: GROUND_Y - 46, w: 40, h: 40, vy: 0, onGround: false, angle: 0, trailT: 0 };
+  let attempts = 0, best = 0, coinsGot = 0;
+  let dying = 0, paused = false, over = false, won = false;
+  let animT = 0, camX = 0;
+  const particles = [];
+  const keys = { jump: false };
+
+  // ---------- audio: thumping EDM BGM (procedural sequencer) ----------
+  let actx = null, musicOn = true, musicStarted = false;
+  let nextStepT = 0, step16 = 0, seqTimer = null;
+  let noiseBuf = null;
+  // Am — F — C — G, one bar each (4 bars = 64 sixteenth steps).
+  const CHORDS = [55.0, 43.65, 65.41, 49.0]; // root freq per bar (A1 F1 C2 G1)
+  function ac() {
+    if (!actx) {
+      const A = window.AudioContext || window.webkitAudioContext;
+      if (A) { actx = new A(); noiseBuf = null; }
+    }
+    if (actx && actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  function noise() {
+    const a = ac();
+    if (!a) return null;
+    if (!noiseBuf) {
+      noiseBuf = a.createBuffer(1, a.sampleRate, a.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    return noiseBuf;
+  }
+  function kick(t) { // the thump: pitched-down sine
+    const a = ac(); if (!a) return;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(165, t);
+    o.frequency.exponentialRampToValueAtTime(44, t + 0.11);
+    g.gain.setValueAtTime(1.0, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.30);
+    o.connect(g).connect(a.destination);
+    o.start(t); o.stop(t + 0.34);
+  }
+  function clap(t) {
+    const a = ac(); const nb = noise(); if (!a || !nb) return;
+    const src = a.createBufferSource(); src.buffer = nb;
+    const f = a.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1800; f.Q.value = 1.1;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.45, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    src.connect(f).connect(g).connect(a.destination);
+    src.start(t); src.stop(t + 0.2);
+  }
+  function hat(t, open) {
+    const a = ac(); const nb = noise(); if (!a || !nb) return;
+    const src = a.createBufferSource(); src.buffer = nb;
+    const f = a.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 7500;
+    const g = a.createGain();
+    g.gain.setValueAtTime(open ? 0.14 : 0.11, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + (open ? 0.22 : 0.04));
+    src.connect(f).connect(g).connect(a.destination);
+    src.start(t); src.stop(t + (open ? 0.24 : 0.06));
+  }
+  function bassNote(t, freq, dur) {
+    const a = ac(); if (!a) return;
+    const o = a.createOscillator(); o.type = "sawtooth";
+    o.frequency.value = freq;
+    const f = a.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 420;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.30, t);
+    g.gain.setValueAtTime(0.30, t + dur * 0.6);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(f).connect(g).connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function lead(t, freq, dur) {
+    const a = ac(); if (!a) return;
+    const o = a.createOscillator(); o.type = "triangle";
+    o.frequency.value = freq;
+    const f = a.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 2400;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.10, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(f).connect(g).connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function scheduleStep(s, t) {
+    const b = s % 16;
+    const bar = Math.floor(s / 16) % 4;
+    if (b % 4 === 0) kick(t);                       // four-on-the-floor
+    if (b === 4 || b === 12) clap(t);               // snare on 2 & 4
+    if (b % 2 === 1) hat(t, b === 14);              // offbeat hats, open on last 16th
+    if (b % 2 === 0) bassNote(t, CHORDS[bar], 60 / BPM / 2); // driving 8th-note bass
+    if (bar % 2 === 1 && b % 4 === 2) lead(t, CHORDS[bar] * 4, 0.12); // bright arp fills
+  }
+  function scheduler() {
+    const a = ac();
+    if (!a) return;
+    while (nextStepT < a.currentTime + 0.12) {
+      scheduleStep(step16, nextStepT);
+      nextStepT += 60 / BPM / 4;
+      step16 = (step16 + 1) % 64;
+    }
+    seqTimer = setTimeout(scheduler, 25);
+  }
+  function startMusic() {
+    if (!musicOn || musicStarted) return;
+    const a = ac(); if (!a) return;
+    musicStarted = true;
+    nextStepT = a.currentTime + 0.06;
+    step16 = 0;
+    scheduler();
+  }
+  function stopMusic() {
+    musicStarted = false;
+    if (seqTimer) { clearTimeout(seqTimer); seqTimer = null; }
+  }
+  function toggleMusic() {
+    musicOn = !musicOn;
+    $("btn-sound").textContent = musicOn ? "🎵 thumping BGM" : "🔇 muted";
+    if (musicOn) startMusic(); else stopMusic();
+  }
+  function tick(freq, dur, vol, type, delay = 0) { // UI/feedback blips
+    if (!musicOn) return;
+    const a = ac(); if (!a) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type || "square"; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+
+  // ---------- gameplay ----------
+  function resetRun() {
+    player.x = 80; player.y = GROUND_Y - 46; player.vy = 0; player.onGround = false;
+    player.angle = 0; dying = 0; over = false; won = false;
+    camX = 0; coinsGot = 0;
+    for (const c of coins) c.taken = false;
+  }
+
+  let lastDeath = null;
+  function die(reason) {
+    lastDeath = reason || "?";
+    dying = 0.5;
+    attempts++;
+    if (musicOn) { tick(340, 0.3, 0.16, "sawtooth"); tick(120, 0.4, 0.14, "sawtooth"); }
+    burst(player.x + player.w / 2, player.y + player.h / 2, 26);
+    els.toast.textContent = "died · attempt " + attempts;
+    els.toast.classList.add("show");
+    setTimeout(() => els.toast.classList.remove("show"), 900);
+  }
+
+  function burst(x, y, n) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 80 + Math.random() * 260;
+      particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80, life: 0.55, t: 0, color: theme.cube, size: 4 + Math.random() * 4 });
+    }
+  }
+
+  function trailP(x, y) {
+    particles.push({ x, y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 20, life: 0.35, t: 0, color: theme.trail, size: 8, noGravity: true });
+  }
+
+  const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  const circleRect = (cx, cy, r, rc) => {
+    const nx = Math.max(rc.x, Math.min(cx, rc.x + rc.w));
+    const ny = Math.max(rc.y, Math.min(cy, rc.y + rc.h));
+    const dx = cx - nx, dy = cy - ny;
+    return dx * dx + dy * dy <= r * r;
+  };
+
+  function update(dt) {
+    animT += dt;
+    if (paused || won) return;
+    if (dying > 0) { dying -= dt; if (dying <= 0) resetRun(); return; }
+
+    // auto-run
+    player.x += AUTO * dt;
+    player.x = Math.min(player.x, LEVEL_W - player.w);
+    camX = Math.max(0, Math.min(player.x - W * 0.35, LEVEL_W - W));
+
+    // jump (hold to re-jump)
+    if (player.onGround && keys.jump) { player.vy = -JUMP_V; player.onGround = false; if (musicOn) tick(330, 0.1, 0.07, "square"); }
+
+    // vertical
+    player.vy = Math.min(player.vy + GRAV * dt, MAX_FALL);
+    const prevBottom = player.y + player.h;
+    player.y += player.vy * dt;
+    player.onGround = false;
+    for (const p of platforms) {
+      if (!overlap(player, p)) continue;
+      if (player.vy > 0 && prevBottom <= p.y + 8) {
+        player.y = p.y - player.h; player.vy = 0; player.onGround = true;
+      } else if (p.kind === "block") {
+        die("block-side@" + Math.round(p.x)); return;
+      } else {
+        // ground side (rare in auto-run) — treat as wall
+        player.y = p.y - player.h; player.vy = 0; player.onGround = true;
+      }
+    }
+
+    // block side check (horizontal clip)
+    for (const p of platforms) {
+      if (p.kind !== "block") continue;
+      if (overlap(player, p)) { die("block-clip@" + Math.round(p.x)); return; }
+    }
+
+    // spikes
+    for (const s of spikes) { if (overlap(player, s)) { die("spike@" + Math.round(s.x)); return; } }
+
+    // coins
+    for (const c of coins) {
+      if (!c.taken && circleRect(c.x, c.y, c.r, player)) {
+        c.taken = true; coinsGot++;
+        if (musicOn) { tick(880, 0.08, 0.1, "sine"); tick(1318, 0.12, 0.1, "sine"); }
+      }
+    }
+
+    // fell into a pit
+    if (player.y > H + 80) { die("pit"); return; }
+
+    // spin / snap
+    if (player.onGround) player.angle = Math.round(player.angle / 90) * 90;
+    else player.angle = (player.angle + dt * 720) % 360;
+
+    // trail
+    player.trailT -= dt;
+    if (player.trailT <= 0) { player.trailT = 0.03; trailP(player.x + 4, player.y + player.h / 2); }
+
+    // progress / best
+    const pct = (player.x / LEVEL_W) * 100;
+    if (pct > best) best = Math.floor(pct);
+
+    // win
+    if (player.x + player.w >= LEVEL_W) {
+      won = true;
+      if (musicOn) [523, 659, 784, 1047, 1318].forEach((f, i) => tick(f, 0.16, 0.13, "triangle", i * 0.12));
+      setTimeout(resetRun, 1600);
+    }
+  }
+
+  function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.t += dt;
+      if (p.t >= p.life) { particles.splice(i, 1); continue; }
+      if (!p.noGravity) p.vy += 500 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+  }
+
+  // ---------- render ----------
+  function draw() {
+    // sky
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, theme.sky[0]); g.addColorStop(0.7, theme.sky[1]); g.addColorStop(1, theme.sky[2]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    // beat pulse (synced to the music clock)
+    const bpm = BPM;
+    const beat = (animT * bpm) / 60;
+    const phase = beat - Math.floor(beat);
+    const pulse = phase < 0.25 ? 1 + 0.22 * (1 - phase / 0.25) : 1;
+    ctx.globalAlpha = 0.12 * pulse;
+    ctx.fillStyle = theme.glow;
+    ctx.fillRect(0, H - 240, W, 240);
+    ctx.globalAlpha = 1;
+
+    // scrolling grid
+    ctx.strokeStyle = theme.grid; ctx.lineWidth = 1;
+    const off = -((camX * 0.6) % TILE);
+    for (let x = off; x < W; x += TILE) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = 0; y < H; y += TILE) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    ctx.save();
+    ctx.translate(-camX, 0);
+
+    // platforms
+    for (const p of platforms) {
+      if (p.kind === "ground") {
+        ctx.fillStyle = theme.groundBody; ctx.fillRect(p.x, p.y + 6, p.w, p.h - 6);
+        ctx.fillStyle = theme.groundTop; ctx.fillRect(p.x, p.y, p.w, 6);
+        ctx.strokeStyle = "rgba(148,163,184,0.25)"; ctx.lineWidth = 1;
+        for (let gx = p.x - (p.x % TILE); gx < p.x + p.w; gx += TILE) {
+          ctx.beginPath(); ctx.moveTo(gx, p.y); ctx.lineTo(gx, p.y + p.h); ctx.stroke();
+        }
+      } else {
+        ctx.fillStyle = theme.blockBody; ctx.fillRect(p.x + 3, p.y + 3, p.w - 6, p.h - 6);
+        ctx.strokeStyle = theme.blockEdge; ctx.lineWidth = 3;
+        ctx.strokeRect(p.x + 1.5, p.y + 1.5, p.w - 3, p.h - 3);
+        ctx.fillStyle = "rgba(255,255,255,0.10)"; ctx.fillRect(p.x + 7, p.y + 7, p.w - 14, p.h - 14);
+      }
+    }
+
+    // spikes
+    for (const s of spikes) {
+      ctx.shadowColor = theme.spike; ctx.shadowBlur = 10;
+      ctx.fillStyle = theme.spike;
+      const n = Math.floor(s.w / 14);
+      for (let i = 0; i < n; i++) {
+        const x0 = s.x + i * 14;
+        ctx.beginPath(); ctx.moveTo(x0, s.y + s.h); ctx.lineTo(x0 + 7, s.y); ctx.lineTo(x0 + 14, s.y + s.h); ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    // coins
+    for (const c of coins) {
+      if (c.taken) continue;
+      const pulse2 = 1 + Math.sin(animT * 5 + c.x * 0.1) * 0.08;
+      ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.arc(c.x, c.y, c.r * pulse2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fde68a"; ctx.beginPath(); ctx.arc(c.x, c.y, c.r * pulse2 * 0.55, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // trail particles
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, 1 - p.t / p.life);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+
+    // cube (with subtle beat-scale pulse)
+    if (!won) drawCube(pulse);
+
+    ctx.restore();
+
+    // vignette
+    const v = ctx.createRadialGradient(W / 2, H / 2, H * 0.5, W / 2, H / 2, H * 1.05);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(2,6,23,0.45)");
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+
+    // HUD
+    els.attempts.textContent = attempts;
+    els.coins.textContent = coinsGot + " / 30";
+    els.best.textContent = best ? best + "%" : "—";
+    els.progress.style.width = Math.max(0, Math.min(100, (player.x / LEVEL_W) * 100)).toFixed(1) + "%";
+    els.progress.style.background = "linear-gradient(90deg," + theme.cube + ",#a78bfa)";
+  }
+
+  function drawCube(pulse) {
+    const size = 40 * (1 + 0.05 * (pulse - 1));
+    ctx.save();
+    ctx.translate(player.x + player.w / 2, player.y + player.h / 2);
+    ctx.rotate((player.angle * Math.PI) / 180);
+    ctx.shadowColor = theme.cube; ctx.shadowBlur = 18;
+    ctx.fillStyle = theme.cube;
+    ctx.fillRect(-size / 2, -size / 2, size, size);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = theme.cubeInner;
+    ctx.fillRect(-size / 2 + 5, -size / 2 + 5, size - 10, size - 10);
+    ctx.fillStyle = theme.cube;
+    ctx.fillRect(-size / 2 + 8, -size / 2 + 8, size - 16, size - 16);
+    ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 2.5;
+    ctx.strokeRect(-size / 2 + 1, -size / 2 + 1, size - 2, size - 2);
+    ctx.restore();
+  }
+
+  // ---------- loop ----------
+  let last = 0, lastPhase = null;
+  function loop(ts) {
+    const dt = Math.min((ts - last) / 1000 || 0, 1 / 30);
+    last = ts;
+    update(dt);
+    updateParticles(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- input ----------
+  function startMusicOnFirstInput() { if (!musicStarted) startMusic(); }
+  window.addEventListener("keydown", (e) => {
+    if (["Space", "ArrowUp", "ArrowDown"].includes(e.code)) e.preventDefault();
+    if (e.repeat) return;
+    startMusicOnFirstInput();
+    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") keys.jump = true;
+    if (e.code === "KeyP") paused = !paused;
+    if (e.code === "KeyM") toggleMusic();
+    if (e.code === "KeyR") { resetRun(); attempts = 0; best = 0; }
+    if (e.code === "Digit1") setTheme(1);
+    if (e.code === "Digit2") setTheme(2);
+    if (e.code === "Digit3") setTheme(3);
+  });
+  window.addEventListener("keyup", (e) => {
+    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") keys.jump = false;
+  });
+  canvas.addEventListener("pointerdown", (e) => { e.preventDefault(); startMusicOnFirstInput(); keys.jump = true; });
+  canvas.addEventListener("pointerup", (e) => { e.preventDefault(); keys.jump = false; });
+  canvas.addEventListener("pointerleave", () => { keys.jump = false; });
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  // ---------- controls ----------
+  let BPM = 140;
+  function setTheme(n) {
+    theme = THEMES[n];
+    document.querySelectorAll("#th-1, #th-2, #th-3").forEach((b) => b.classList.remove("on"));
+    $("th-" + n).classList.add("on");
+  }
+  document.querySelectorAll("#th-1, #th-2, #th-3").forEach((b) => {
+    b.addEventListener("click", () => setTheme(parseInt(b.id.split("-")[1], 10)));
+  });
+  [120, 140, 160].forEach((b) => {
+    $("bpm-" + b).addEventListener("click", () => {
+      BPM = b;
+      document.querySelectorAll("#bpm-120, #bpm-140, #bpm-160").forEach((x) => x.classList.remove("on"));
+      $("bpm-" + b).classList.add("on");
+      if (musicStarted) { stopMusic(); startMusic(); } // restart scheduler on new tempo
+    });
+  });
+  $("btn-sound").addEventListener("click", toggleMusic);
+  $("btn-restart").addEventListener("click", () => { resetRun(); attempts = 0; best = 0; });
+
+  buildLevel();
+  resetRun();
+  requestAnimationFrame(loop);
+
+  // debug probe for automation
+  window.__gd = {
+    probe: () => ({ x: Math.round(player.x), y: Math.round(player.y), vy: Math.round(player.vy), onGround: player.onGround, angle: Math.round(player.angle), dying: dying, attempts, best, over, won, lastDeath }),
+    restart: () => { resetRun(); attempts = 0; best = 0; },
+    hold: () => { keys.jump = true; },
+    release: () => { keys.jump = false; },
+    setTheme: setTheme, setBpm: (b) => { BPM = b; },
+    music: { start: startMusic, stop: stopMusic, toggle: toggleMusic, get on() { return musicStarted; } },
+    audioState: () => {
+      if (!actx) return { created: false };
+      return { created: true, state: actx.state, currentTime: +actx.currentTime.toFixed(3), step16, nextStepT: +nextStepT.toFixed(3), musicStarted, musicOn, seqTimer: !!seqTimer };
+    },
+    // beatability helpers
+    teleport: (x, y) => { player.x = x; player.y = (y == null ? GROUND_Y - 46 : y); player.vy = 0; player.onGround = true; dying = 0; attempts = 0; camX = Math.max(0, Math.min(x - W * 0.35, LEVEL_W - W)); },
+    landingClear: (x) => platforms.some((pl) => pl.kind === "ground" && x >= pl.x && x <= pl.x + pl.w - 20),
+    pits: () => {
+      const gs = platforms.filter((p) => p.kind === "ground").sort((a, b) => a.x - b.x);
+      const out = [];
+      for (let i = 1; i < gs.length; i++) {
+        const prevEnd = gs[i - 1].x + gs[i - 1].w;
+        if (gs[i].x > prevEnd + 10) out.push({ start: prevEnd, end: gs[i].x });
+      }
+      return out;
+    },
+    // scripted “good player”: hold-bounce, but time the pits. Keeps running
+    // until stopped, so polling __gd.autoplayStatus() works across evaluate calls.
+    autoplay: (ms) => {
+      if (window.__gd._apIv) { clearInterval(window.__gd._apIv); window.__gd._apIv = null; }
+      window.__gd._apIv = setInterval(() => {
+        const p = window.__gd.probe();
+        if (p.dying > 0) { window.__gd.release(); return; }
+        if (p.x >= LEVEL_W) { window.__gd.release(); clearInterval(window.__gd._apIv); window.__gd._apIv = null; return; }
+        // The layout is built so a holding player clears every hazard — pits sit
+        // between landing points and spikes/blocks mid-arc. Pure hold it is.
+        window.__gd.hold();
+      }, 25);
+      return new Promise((resolve) => { window.__gd._apDone = resolve; if (ms) setTimeout(() => window.__gd.autoplayStop("timeout"), ms); });
+    },
+    autoplayStop: (why) => {
+      if (window.__gd._apIv) { clearInterval(window.__gd._apIv); window.__gd._apIv = null; }
+      window.__gd.release();
+      if (window.__gd._apDone) { const d = window.__gd._apDone; window.__gd._apDone = null; d(why || "stopped"); }
+    },
+    autoplayStatus: () => ({ running: !!window.__gd._apIv, probe: window.__gd.probe() }),
+  };
+})();
+</script>
+</body>
+</html>

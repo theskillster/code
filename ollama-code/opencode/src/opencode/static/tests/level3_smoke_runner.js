@@ -142,6 +142,38 @@ for (let i = 0; i < 10 && !p5.onGround; i++) Entities.update(0.016);
 check("cube angle snaps to 90 on landing", p5.angle % 90 === 0, "angle=" + p5.angle);
 // ---------------- end of task block ----------------
 
+// ---- Hold-jump beatability simulation ----
+// A pure-hold run of each level must reach the finish with ZERO deaths.
+// The live game loop runs on requestAnimationFrame (≈60Hz), so we simulate
+// at dt = 1/60 — NOT an arbitrary 0.016s — because the jump physics are
+// frame-quantized and the landing cadence shifts with dt. This is what
+// catches hazards sitting on the in-game landing cadence (≈ 86 + 204k),
+// which the reachability BFS cannot see.
+const SIM_DT = 1 / 60;
+Input.keys.jump = false;
+for (const lvl of [1, 2, 3]) {
+  window.__neon.playLevel(lvl);
+  Input.keys.jump = true; // hold to bounce
+  Entities.gameState.dying = 0;
+  let frames = 0;
+  const maxFrames = Math.ceil(Entities.gameState.levelW / Entities.AUTO_SPEED / SIM_DT) + 200;
+  let deaths = 0;
+  let lastA = Entities.gameState.attempts;
+  while (frames < maxFrames && Entities.gameState.state === "playing") {
+    Entities.update(SIM_DT);
+    frames++;
+    if (Entities.gameState.attempts !== lastA) {
+      deaths++;
+      lastA = Entities.gameState.attempts;
+    }
+  }
+  const won = Entities.gameState.state === "win";
+  check("level " + lvl + " hold-jump beats it with 0 deaths (dt=" + SIM_DT.toFixed(4) + ")", won && deaths === 0,
+    "won=" + won + " deaths=" + deaths + " frames=" + frames);
+  Input.keys.jump = false;
+}
+// ---------------- end of task block ----------------
+
 // ---- Task 5 wiring (kept essentials) ----
 check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
 window.__neon.loadLevel(3);

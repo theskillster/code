@@ -200,8 +200,8 @@ export const Levels = (() => {
         coinArc(420, 400, 3);
         block(596, GROUND_Y - 48);
         coin(620, GROUND_Y - 96);
-        spike(800);
-        spike(848);
+        spike(776);
+        spike(824);
         coinArc(880, 400, 3);
         block(1004, GROUND_Y - 48);
         coin(1028, GROUND_Y - 96);
@@ -209,8 +209,8 @@ export const Levels = (() => {
         coinArc(1240, 400, 3);
         block(1412, GROUND_Y - 48);
         coin(1436, GROUND_Y - 96);
-        spike(1616);
-        spike(1664);
+        spike(1592);
+        spike(1640);
         coinArc(1690, 400, 3);
         block(1820, GROUND_Y - 48);
         coin(1844, GROUND_Y - 96);
@@ -218,8 +218,8 @@ export const Levels = (() => {
         coinArc(2050, 400, 3);
         block(2228, GROUND_Y - 48);
         coin(2252, GROUND_Y - 96);
-        spike(2432);
-        spike(2480);
+        spike(2408);
+        spike(2456);
         coinArc(2500, 400, 3);
         block(2636, GROUND_Y - 48);
         coin(2660, GROUND_Y - 96);
@@ -227,8 +227,8 @@ export const Levels = (() => {
         coinArc(2870, 400, 3);
         block(3044, GROUND_Y - 48);
         coin(3068, GROUND_Y - 96);
-        spike(3248);
-        spike(3296);
+        spike(3224);
+        spike(3272);
         coinArc(3320, 400, 3);
         block(3452, GROUND_Y - 48);
         coin(3476, GROUND_Y - 96);
@@ -236,8 +236,8 @@ export const Levels = (() => {
         coinArc(3680, 400, 3);
         block(3860, GROUND_Y - 48);
         coin(3884, GROUND_Y - 96);
-        spike(4064);
-        spike(4112);
+        spike(4040);
+        spike(4088);
         coinArc(4140, 400, 3);
         block(4268, GROUND_Y - 48);
         coin(4292, GROUND_Y - 96);
@@ -245,8 +245,8 @@ export const Levels = (() => {
         coinArc(4500, 400, 3);
         block(4676, GROUND_Y - 48);
         coin(4700, GROUND_Y - 96);
-        spike(4880);
-        spike(4928);
+        spike(4856);
+        spike(4904);
         coinArc(4950, 400, 3);
         block(5084, GROUND_Y - 48);
         coin(5108, GROUND_Y - 96);

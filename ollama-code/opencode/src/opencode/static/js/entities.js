@@ -14,7 +14,7 @@ export const Entities = (() => {
   const { sfx } = Audio;
   const {
     GROUND_H, GROUND_Y, W, H,
-    platforms, coins, spikes, flag,
+    platforms, coins, spikes,
     LEVELS, THEMES, LEVEL_MAX_W,
   } = Levels;
 
@@ -245,17 +245,6 @@ export const Entities = (() => {
     if (player.x + player.w >= gameState.levelW && _onWin) _onWin();
   }
 
-  // Checkpoints: update respawn point when player passes a milestone.
-  function updateCheckpoints() {
-    const gs = gameState;
-    for (const t of gs.CHECKPOINTS) {
-      if (player.x > t && player.onGround && t > gs.checkpoint.x) {
-        gs.checkpoint.x = t;
-        gs.checkpoint.y = GROUND_Y - player.h;
-      }
-    }
-  }
-
   // Cube spin: spins in the air (~2 rev/s), snaps to the nearest 90° on landing.
   function updateRunAnim(dt) {
     if (player.onGround) {
@@ -292,7 +281,6 @@ export const Entities = (() => {
     updateCoins();
     updateSpikes();
     updateBoundaries();
-    updateCheckpoints();
   }
 
   function updateCamera() {

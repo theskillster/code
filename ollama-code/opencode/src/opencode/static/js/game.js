@@ -14,11 +14,11 @@ import { Renderer } from "./renderer.js";
   const { ensureAudio, sfx, isSoundOn, toggleSound, playMusic, pauseMusic, stopMusic } = Audio;
   const { keys, bindInput } = Input;
   const {
-    LEVELS, THEMES, LEVEL_MAX_W, clearScene, W, H, GROUND_H, GROUND_Y,
+    LEVELS, THEMES, clearScene, GROUND_Y,
   } = Levels;
   const {
     player, gameState, particles, update, updateCamera, updateParticles,
-    resetPlayer, setCallbacks, sparkle, burst, dust, confetti, fmtTime,
+    resetPlayer, setCallbacks, burst, confetti,
   } = Entities;
   const { draw, updateHUD, els, ctx, canvas } = Renderer;
 
@@ -77,8 +77,6 @@ import { Renderer } from "./renderer.js";
     clearScene();
     particles.length = 0;
     gameState.coinCount = 0;
-    gameState.keyCount = 0;
-    gameState.time = 0;
     L.build();
     gameState.levelW = L.width;
     gameState.totalCoins = Levels.coins.length;
@@ -88,8 +86,6 @@ import { Renderer } from "./renderer.js";
 
   function resetPlayerState() {
     resetPlayer();
-    gameState.checkpoint.x = 80;
-    gameState.checkpoint.y = GROUND_Y - 46;
     gameState.camera.x = 0;
   }
 
@@ -159,8 +155,13 @@ import { Renderer } from "./renderer.js";
     beginMusic();
   }
 
+  // GD-fidelity restart: reload the current level without zeroing the attempt
+  // counter (attempts only reset on a fresh game via Start).
   function restartRun() {
-    if (gameState.state === "playing" || gameState.state === "paused") start();
+    if (gameState.state === "playing" || gameState.state === "paused") {
+      keys.jumpPressed = false;
+      playLevel(gameState.currentLevel);
+    }
   }
 
   // --- Hurt / Win callbacks (set up via setCallbacks) ---
@@ -172,6 +173,10 @@ import { Renderer } from "./renderer.js";
     burst(player.x + player.w / 2, player.y + player.h / 2, 18);
     player.vx = 0;
     player.vy = 0;
+    // Clear ground/buffer so a held jump can't re-launch the frozen cube on
+    // this frame (block-side deaths fire before updateJump in the loop).
+    player.onGround = false;
+    player.jumpBuffer = 0;
     gameState.dying = 0.5; // ~500ms shatter before restart
   }
 
