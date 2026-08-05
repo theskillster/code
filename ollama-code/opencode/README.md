@@ -11,7 +11,7 @@ front end.
 
 ## 🎮 The game
 
-Neon Runner is a classic side-scrolling platformer with **two levels**:
+Neon Runner is a classic side-scrolling platformer with **three levels**:
 
 **Level 1 — Neon Meadows** (5,120 px):
 
@@ -26,7 +26,13 @@ Neon Runner is a classic side-scrolling platformer with **two levels**:
 - New enemy: **volts** — electric flyers that bob up and down over gaps and guard treasures
 - New feature: **keys & gates** — locked gates block your path until you grab their key
 
-Both levels share **3 lives** (score and lives carry over between levels); falling
+**Level 3 — Sunflare Ridge** (6,200 px, unlocked after Level 2):
+
+- The longest level: **dashing darters** (telegraph, then charge), flying volts, plasma turrets, and two key/gate pairs
+- New pickups: **life hearts** restore an extra life (max 6)
+- Brightest palette and fastest BGM track yet
+
+All three levels share **3 lives** (score and lives carry over between levels); falling
 into a pit or touching an enemy/spike costs one. Finish a level fast for a **time
 bonus**, and your **best total score** is saved between visits.
 
@@ -65,23 +71,30 @@ On touchscreens, on-screen ◀ ▶ ⬆ buttons appear automatically.
 
 ```
 .
-├── pyproject.toml            # project metadata, deps, ruff config
+├── pyproject.toml            # project metadata, deps, ruff config, console script
 ├── uv.lock                   # locked dependency graph
-├── wsgi.py                   # entry point: `flask --app wsgi run`
+├── wsgi.py                   # WSGI entry: `app = create_app()`; `python wsgi.py` serves via Waitress
 ├── .python-version           # pinned Python version
 ├── README.md                 # this file
-├── explanation.md            # plain-text walkthrough of the code (Markdown)
-├── explanation.html          # rich visual walkthrough (interactive, open in browser)
+├── explanation.md            # plain-text walkthrough of the ORIGINAL monolithic engine
+├── explanation.html          # rich visual walkthrough of the ORIGINAL monolithic engine
 └── src/
     └── opencode/
-        ├── __init__.py       # create_app() factory (templates + static paths)
+        ├── __init__.py       # create_app() factory + main() (argparse → Waitress)
         ├── routes.py         # main Blueprint → renders index.html
         ├── templates/
-        │   ├── base.html     # page shell (header, footer, script tags)
+        │   ├── base.html     # page shell (single <script type="module">)
         │   └── index.html    # game page: HUD, canvas, overlay, touch buttons
         └── static/
             ├── css/main.css  # page + game styling (dark neon theme)
-            └── js/main.js    # THE GAME — ~1,412 lines of canvas JavaScript
+            └── js/           # the game — six ES modules + bootstrap
+                ├── audio.js    # WebAudio synth + procedural BGM
+                ├── input.js    # keyboard + touch controls
+                ├── levels.js   # level data, themes, constants, builders
+                ├── entities.js # physics, player, enemies, update systems
+                ├── renderer.js # all draw functions, canvas, HUD
+                ├── game.js     # orchestrator: state machine, loop, wiring
+                └── main.js     # bootstrap entry (loads the module graph)
 ```
 
 ## 🚀 Setup
@@ -89,18 +102,14 @@ On touchscreens, on-screen ◀ ▶ ⬆ buttons appear automatically.
 Requires `uv` (install via `brew install uv`).
 
 ```sh
-uv sync                              # install dependencies into .venv
-uv run flask --app wsgi run --debug  # start the dev server
+uv sync                                # install dependencies into .venv
+uv run opencode                        # start server → http://127.0.0.1:5000
+uv run opencode --port 5055            # ...or any free port
 ```
 
-If the `opencode` package isn't installed into the venv yet (src layout), add the
-source directory to the path:
-
-```sh
-PYTHONPATH=src uv run flask --app wsgi run
-```
-
-Then open <http://127.0.0.1:5000> and press **Start**.
+The server uses **Waitress** (production WSGI), which is reliable on macOS
+where the Flask dev server crashes. Then open <http://127.0.0.1:5000> and
+press **Start**.
 
 ## 🔧 Useful commands
 
@@ -118,21 +127,13 @@ uv run ruff format .         # format
 - **`templates/index.html`** — the game's markup: a HUD bar (score / coins /
   lives / best / time), the `<canvas>`, an overlay for menu/pause/win/game-over,
   and the touch buttons.
-- **`static/js/main.js`** — the entire game: physics, collision, level data,
-  enemies, coins, particles, sound synthesis, input handling, and the render
-  loop. Read `explanation.md` for a guided tour.
+- **`static/js/main.js`** — bootstrap entry: imports `game.js`, which pulls in the full module graph (`audio → input → levels → entities → renderer`) as **native ES modules** — no bundler, no build step, no load-order bookkeeping. `base.html` loads only this one `<script type="module">`.
+- **`static/tests/level3_smoke.html`** — browser-based smoke test (loads the modules against a stub DOM and asserts on real behavior). Open it in the running server; every line must print PASS.
 - **`static/css/main.css`** — the dark neon theme and responsive layout.
 
 ## 🧠 Reading the code
 
 Two complementary guides:
 
-- **`explanation.md`** — plain-text walkthrough in Markdown, readable in any
-  editor or on GitHub. Covers the main executable, server-side files, game
-  engine, states, and findings.
-- **`explanation.html`** — rich visual walkthrough with interactive diagrams
-  (request flow, file tree, state machine, game loop), syntax-highlighted code
-  tabs, and animated SVGs. Open in your browser: `open explanation.html`.
-
-Both explain the same code: the entry point, the Flask app factory, the single
-route, and the 1,412-line front-end game engine.
+- **`MODULES.md`** — the current module architecture: dependency graph, per-module responsibilities and sizes, smoke-test harness, backend layout.
+- **`explanation.md` / `explanation.html`** — a plain-text and an interactive visual walkthrough of the *original* monolithic engine (pre-module-split). Useful for understanding the game design; the code now lives across the six ES modules.
