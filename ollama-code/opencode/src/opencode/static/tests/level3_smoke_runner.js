@@ -6,9 +6,9 @@ import { Input } from "../js/input.js";
 import { Levels } from "../js/levels.js";
 import { Entities } from "../js/entities.js";
 import { Renderer } from "../js/renderer.js";
-import { Game } from "../js/game.js";
+// Side-effect import: game.js self-initializes and sets window.__neon.
+import "../js/game.js";
 
-"use strict";
 const out = [];
 const log = (s) => out.push(s);
 const results = document.getElementById("results");
