@@ -5,13 +5,9 @@
 export const Input = (() => {
   "use strict";
 
-  const keys = { left: false, right: false, jump: false, jumpPressed: false };
+  const keys = { jump: false, jumpPressed: false };
 
   const KEYMAP = {
-    ArrowLeft: "left",
-    KeyA: "left",
-    ArrowRight: "right",
-    KeyD: "right",
     Space: "jump",
     ArrowUp: "jump",
     KeyW: "jump",
@@ -39,11 +35,6 @@ export const Input = (() => {
 
   function onKeyUp(e) {
     setKey(e.code, false);
-    // Variable jump height: releasing the jump key cuts upward velocity.
-    if ((e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") && _getPlayer) {
-      const player = _getPlayer();
-      if (player.vy < -260) player.vy = -260;
-    }
   }
 
   function bindInput(getPlayer, togglePause, restartRun) {
@@ -64,10 +55,6 @@ export const Input = (() => {
       };
       const up = (e) => {
         e.preventDefault();
-        if (k === "jump" && keys.jump && _getPlayer) {
-          const player = _getPlayer();
-          if (player.vy < -260) player.vy = -260;
-        }
         keys[k] = false;
       };
       btn.addEventListener("pointerdown", down);

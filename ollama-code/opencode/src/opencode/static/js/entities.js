@@ -20,11 +20,12 @@ export const Entities = (() => {
 
   // --- Physics constants ---
   const GRAV = 2300;
-  const MOVE = 340;
-  const JUMP_V = 800;
+  const AUTO_SPEED = 340; // constant forward speed (Geometry Dash style)
+  const JUMP_V = 700;
   const MAX_FALL = 1300;
   const COYOTE = 0.09;
   const BUFFER = 0.12;
+  const TILE = 48;
 
   // --- Player state ---
   const player = {
@@ -36,10 +37,11 @@ export const Entities = (() => {
     vy: 0,
     onGround: false,
     facing: 1,
+    angle: 0, // cube spin, degrees; snapped to 90° on landing
+    trailT: 0, // trail particle spawn timer
     coyote: 0,
     jumpBuffer: 0,
     invuln: 0,
-    run: 0,
   };
 
   // --- Shared game state (mutated by both entities.js and game.js) ---
@@ -142,27 +144,22 @@ export const Entities = (() => {
     player.invuln = Math.max(0, player.invuln - dt);
   }
 
-  // Horizontal movement + X collision with platforms.
+  // Auto-run: the player always moves right at constant speed. No horizontal
+  // control — Geometry Dash style. X-clamp only (no X push-out; block sides
+  // are lethal and handled in updateVertical).
   function updateMovement(dt) {
     const gs = gameState;
-    player.vx = 0;
-    if (keys.left) player.vx = -MOVE;
-    if (keys.right) player.vx = MOVE;
-    if (player.vx !== 0) player.facing = player.vx > 0 ? 1 : -1;
+    player.vx = AUTO_SPEED;
+    player.facing = 1;
     player.x += player.vx * dt;
-    player.x = Math.max(0, Math.min(player.x, gs.levelW - player.w));
-    for (const p of platforms) {
-      if (overlap(player, p)) {
-        if (player.vx > 0) player.x = p.x - player.w;
-        else if (player.vx < 0) player.x = p.x + p.w;
-        player.vx = 0;
-      }
-    }
+    player.x = Math.min(player.x, gs.levelW - player.w);
   }
 
-  // Jump: coyote-time + input-buffer check, fires if both are active.
+  // Jump: fixed-height (GD). Fires on ground contact while the jump input is
+  // held — holding the button auto-re-jumps on every landing. Coyote + buffer
+  // keep it forgiving.
   function updateJump(dt) {
-    if (player.jumpBuffer > 0 && player.coyote > 0) {
+    if (player.onGround && (keys.jump || player.jumpBuffer > 0)) {
       player.vy = -JUMP_V;
       player.coyote = 0;
       player.jumpBuffer = 0;
@@ -407,10 +404,13 @@ export const Entities = (() => {
     }
   }
 
-  // Run animation counter.
+  // Cube spin: spins in the air (~2 rev/s), snaps to the nearest 90° on landing.
   function updateRunAnim(dt) {
-    if (player.onGround && Math.abs(player.vx) > 0) player.run += dt * 12;
-    else player.run += dt * 4;
+    if (player.onGround) {
+      player.angle = Math.round(player.angle / 90) * 90;
+    } else {
+      player.angle = (player.angle + dt * 720) % 360;
+    }
   }
 
   // --- Main update: runs all systems in order ---
@@ -475,7 +475,7 @@ export const Entities = (() => {
   }
 
   return {
-    GRAV, MOVE, JUMP_V, MAX_FALL, COYOTE, BUFFER,
+    GRAV, AUTO_SPEED, JUMP_V, MAX_FALL, COYOTE, BUFFER, TILE,
     player, gameState,
     overlap, circleRect, fmtTime,
     particles, sparkle, burst, dust, confetti,
