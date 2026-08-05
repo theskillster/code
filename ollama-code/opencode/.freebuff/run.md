@@ -37,8 +37,18 @@ Stop with: `screen -S opencode_preview -X quit`
 
 ## Smoke tests
 
-Open http://127.0.0.1:5000/static/tests/level3_smoke.html — every line must
-print PASS. The harness loads the six modules as ES modules against a stub DOM
-and asserts on real behavior (auto-run + fixed jump, instant-restart death
-loop with attempts, no-enemies level data, lethal block sides, jump-reachability
-BFS, beat-synced visual API, and the hold-jump beatability simulation).
+**One command (recommended):** `./.freebuff/smoke.sh` — boots the server on a
+free port, verifies the game + harness pages and all seven JS modules serve,
+runs ruff, and prints a PASS/FAIL verdict (exit 0/1). If Node is installed it
+also runs the full 52-check harness headlessly (`level3_smoke_node.mjs`);
+without Node that part is skipped (install Node, or open the page in a
+browser).
+
+**In a browser:** open http://127.0.0.1:5000/static/tests/level3_smoke.html —
+every line must print PASS. The harness loads the six modules as ES modules
+against a stub DOM and asserts on real behavior (auto-run + fixed jump,
+instant-restart death loop with attempts, no-enemies level data, lethal block
+sides, jump-reachability BFS, beat-synced visual API, the timing-hazard data
+API (gaps/orbs), gap-fall and overhang lethality locks, jump-orb physics,
+and a dual hold/timed-policy beatability sim proving levels require timing
+but stay beatable).

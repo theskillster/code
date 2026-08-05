@@ -23,22 +23,31 @@ auto-run, jump-only, no enemies:
 **Level 2 — The Voltage Vault** (5,100 px):
 
 - Faster tempo, tighter rhythm — spikes and blocks alternate the whole way
-- No enemies: the **level itself is the obstacle**
+- Mid-level **ground gap**: release to run, then time your jump over the pit
 
 **Level 3 — Sunflare Ridge** (6,200 px):
 
-- The final gauntlet: **double spike rows** mixed with block towers
+- The final gauntlet: **two ground gaps**, a **low overhang** you must run
+  under, and a **jump orb** floating over the second pit
 - Memorize the rhythm. Beat it to win the game.
 
-You die in **one hit** — spikes and block sides kill. The level restarts
-**instantly** from x=0. **Attempts** count every restart; **Best %** remembers
-your furthest run. Coins are optional collectibles.
+You die in **one hit** — spikes, block sides, and falling into pits kill. The
+level restarts **instantly** from x=0. **Attempts** count every restart;
+**Best %** remembers your furthest run. Coins are optional collectibles.
+
+**Timing is the real enemy.** Levels now mix **ground gaps** (release to run
+and time your jump over the pit), **low overhangs** (jump into one and you
+shatter — run underneath instead), and **jump orbs** (tap mid-air on a glowing
+ring to re-jump). Holding jump no longer clears a level — you have to feel the
+rhythm.
 
 ### Controls
 
 | Action        | Keys                                          |
 | ------------- | --------------------------------------------- |
-| Jump          | `Space`, `↑`, `W`, or click — **hold to keep bouncing** |
+| Jump / hold   | `Space`, `↑`, `W`, or click — **hold to keep bouncing** |
+| Release       | let go to run on the ground — **time gaps and slip under overhangs** |
+| Orb tap       | tap `Space` mid-air on a glowing ring to **re-jump** |
 | Pause         | `P` (or the ⏸ button)                         |
 | Restart level | `R`                                           |
 | Mute          | 🔊 button (remembered next visit)             |
@@ -47,7 +56,7 @@ On touchscreens, one big **TAP** button appears automatically.
 
 ### Progress & attempts
 
-- You die in **one hit** — spikes and block sides kill. The level restarts instantly.
+- You die in **one hit** — spikes, block sides, and pits kill. The level restarts instantly.
 - **Attempts** count every restart; **Best %** remembers your furthest run.
 - **Coins** are optional collectibles — grab them all for bragging rights.
 - Finish a level to advance; beat all three to win.

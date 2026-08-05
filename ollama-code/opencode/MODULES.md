@@ -45,12 +45,12 @@
 |--------|-------|---------------|
 | `audio.js` | 225 | WebAudio synth — `ensureAudio()`, `tone()`, `sfx`, procedural BGM (3 per-level tracks), `getBpm()` for beat-synced visuals |
 | `input.js` | 72 | Keyboard + touch input — jump-only `keys`, `bindInput()` |
-| `levels.js` | 310 | GD level data (3 levels: ground/block/spike/coin layouts), neon themes, constants |
-| `entities.js` | 336 | Physics: auto-run, fixed-height jump, lethal block sides, particles, trail, death beat |
-| `renderer.js` | 240 | All draw functions — spinning cube, grid floor, beat pulse, neon spikes/blocks, HUD (coins/attempts/best/progress) |
-| `game.js` | 300 | State machine, game loop, instant-restart + attempts/percent, overlay countdowns, per-level intro copy, BGM control |
+| `levels.js` | 322 | GD level data (3 levels: ground/block/spike/coin/gap/orb layouts), neon themes, constants, `gap()`/`orb()` builders |
+| `entities.js` | 347 | Physics: auto-run, fixed-height jump, lethal block sides, `updateOrbs()` mid-air re-jump, particles, trail, death beat |
+| `renderer.js` | 288 | All draw functions — spinning cube, grid floor, beat pulse, neon spikes/blocks, `drawGaps()` abyss, `drawOrbs()` rings, overhang stripes, HUD (coins/attempts/best/progress) |
+| `game.js` | 305 | State machine, game loop, instant-restart + attempts/percent, overlay countdowns, per-level intro copy, BGM control |
 | `main.js` | 6 | Bootstrap entry — imports `game.js` |
-| **Total** | **1,489** | |
+| **Total** | **1,565** | |
 
 ## Module loading (ES modules)
 
@@ -72,9 +72,16 @@ imports the six game modules against a stub DOM and asserts on real behavior:
 auto-run + fixed-height jump + cube spin, instant-restart death loop with
 attempts and percent, absence of enemies/keys/gates/hearts, lethal block sides
 vs. safe block tops, per-level jump-reachability BFS over the physics
-constants, and the visual API (themes, `Audio.getBpm`, angle snap). Run it at
-`/static/tests/level3_smoke.html` in the running preview server (module
-scripts need http, not file://).
+constants, the visual API (themes, `Audio.getBpm`, angle snap), the
+timing-hazard data API (`Levels.gaps`/`Levels.orbs`), gap-fall and overhang
+lethality locks, jump-orb physics, and a **dual hold/timed-policy beatability
+sim** proving levels require timing but stay beatable (51 checks).
+
+Run it at `/static/tests/level3_smoke.html` in the running preview server
+(module scripts need http, not file://), or headlessly where Node exists via
+`node src/opencode/static/tests/level3_smoke_node.mjs`. The one-command gate
+is `./.freebuff/smoke.sh` — boots the server, runs HTTP checks + ruff, and
+executes the Node harness when available.
 
 ## Python backend
 
