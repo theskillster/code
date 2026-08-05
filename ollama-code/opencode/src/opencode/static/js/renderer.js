@@ -19,7 +19,7 @@ export const Renderer = (() => {
   ctx.scale(dpr, dpr);
 
   const {
-    platforms, coins, spikes, THEMES,
+    platforms, coins, spikes, gaps, orbs, THEMES, GROUND_Y,
   } = Levels;
 
   const { player, gameState, particles, overlap } = Entities;
@@ -140,6 +140,55 @@ export const Renderer = (() => {
       ctx.strokeRect(b.x + 1.5, b.y + 1.5, b.w - 3, b.h - 3);
       ctx.fillStyle = "rgba(255,255,255,0.12)";
       ctx.fillRect(b.x + 7, b.y + 7, b.w - 14, b.h - 14);
+      // Elevated blocks are overhangs — jumping into the underside kills.
+      // Warn with a hazard stripe along the underside.
+      if (b.y < GROUND_Y - 46) {
+        ctx.fillStyle = "rgba(248,113,113,0.25)";
+        ctx.fillRect(b.x + 2, b.y + b.h - 6, b.w - 4, 4);
+      }
+    }
+  }
+
+  // --- Jump orbs: pulsing neon ring, beat-synced; fades when used ---
+  function drawOrbs() {
+    const bpm = Audio.getBpm();
+    for (const o of orbs) {
+      const pulse = 1 + 0.25 * Math.sin(((gameState.animTime * bpm) / 60) * Math.PI * 2);
+      ctx.save();
+      ctx.globalAlpha = o.used ? 0.15 : 1;
+      ctx.shadowColor = gameState.theme.glow;
+      ctx.shadowBlur = 14 * pulse;
+      ctx.strokeStyle = gameState.theme.glow;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, o.r * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // --- Gaps: dark abyss with a glowing hazard rim (warning edge) ---
+  function drawGaps() {
+    for (const g of gaps) {
+      const gx = g.x;
+      const gy = GROUND_Y;
+      const gw = g.w;
+      ctx.fillStyle = "rgba(2,6,23,0.95)";
+      ctx.fillRect(gx, gy, gw, H - gy);
+      ctx.fillStyle = "rgba(248,113,113,0.10)";
+      ctx.fillRect(gx, gy, gw, 24);
+      ctx.strokeStyle = gameState.theme.spike;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.lineTo(gx, gy + 18);
+      ctx.moveTo(gx + gw, gy);
+      ctx.lineTo(gx + gw, gy + 18);
+      ctx.stroke();
     }
   }
 
@@ -209,8 +258,10 @@ export const Renderer = (() => {
 
     drawPlatforms();
     drawBlocks();
+    drawGaps();
     drawSpikes();
     drawCoins();
+    drawOrbs();
     drawParticles();
     if (gameState.state !== "over") drawPlayer();
 
@@ -234,5 +285,5 @@ export const Renderer = (() => {
     els.levelBadge.textContent = Levels.LEVELS[gameState.currentLevel].name;
   }
 
-  return { draw, updateHUD, els, ctx, canvas, W, H, roundRect };
+  return { draw, updateHUD, drawOrbs, drawGaps, els, ctx, canvas, W, H, roundRect };
 })();

@@ -381,4 +381,9 @@ check("badge shows Sunflare Ridge", document.getElementById("level-name-badge").
 // level (LEVELS[2]) instead of crashing on LEVELS[4] after the checks finish.
 window.__neon.playLevel(1);
 
+// ---- Task 10: renderer API ----
+check("Renderer.drawOrbs exists", typeof Renderer.drawOrbs === "function");
+check("Renderer.drawGaps exists", typeof Renderer.drawGaps === "function");
+// ---------------- end of task block ----------------
+
 results.textContent = out.join("\n");
