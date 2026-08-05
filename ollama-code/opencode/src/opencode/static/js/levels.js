@@ -4,7 +4,7 @@
 // build() on a level, which uses the helper functions below.
 // Exposes: LEVELS, THEMES, constants, scene arrays, data helpers
 
-const Levels = (() => {
+export const Levels = (() => {
   "use strict";
 
   const W = 960;

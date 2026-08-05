@@ -3,7 +3,11 @@
 // Exposes: player, physics constants, update(), updateCamera(), updateParticles(),
 //          resetPlayer(), particles, helpers, and a shared GameState object
 
-const Entities = (() => {
+import { Input } from "./input.js";
+import { Audio } from "./audio.js";
+import { Levels } from "./levels.js";
+
+export const Entities = (() => {
   "use strict";
 
   const { keys } = Input;

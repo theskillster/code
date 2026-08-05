@@ -2,7 +2,13 @@
 // Depends on: Audio, Input, Levels, Entities, Renderer (all loaded before this)
 // This is the main coordinator — it wires everything together and starts the loop.
 
-const Game = (() => {
+import { Audio } from "./audio.js";
+import { Input } from "./input.js";
+import { Levels } from "./levels.js";
+import { Entities } from "./entities.js";
+import { Renderer } from "./renderer.js";
+
+export const Game = (() => {
   "use strict";
 
   const { ensureAudio, sfx, isSoundOn, toggleSound, playMusic, pauseMusic, stopMusic } = Audio;

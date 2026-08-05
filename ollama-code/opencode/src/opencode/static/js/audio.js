@@ -2,7 +2,7 @@
 // Exposes: ensureAudio, tone, sfx, playMusic, pauseMusic, stopMusic,
 //          musicActive, isSoundOn, toggleSound
 
-const Audio = (() => {
+export const Audio = (() => {
   "use strict";
 
   let audioCtx = null;

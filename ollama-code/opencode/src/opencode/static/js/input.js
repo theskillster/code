@@ -2,7 +2,7 @@
 // Depends on: nothing directly — game.js injects callbacks via bindInput().
 // Exposes: keys, setKey, bindInput, unbindInput
 
-const Input = (() => {
+export const Input = (() => {
   "use strict";
 
   const keys = { left: false, right: false, jump: false, jumpPressed: false };

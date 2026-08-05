@@ -2,7 +2,10 @@
 // Depends on: Levels (for scene arrays, themes, stars, clouds, constants), Entities (for player, particles, gameState)
 // Exposes: draw(), updateHUD()
 
-const Renderer = (() => {
+import { Levels } from "./levels.js";
+import { Entities } from "./entities.js";
+
+export const Renderer = (() => {
   "use strict";
 
   const canvas = document.getElementById("game-canvas");
