@@ -101,6 +101,11 @@ export const Entities = (() => {
       particles.push({ x: x + (Math.random() - 0.5) * 20, y, vx: (Math.random() - 0.5) * 120, vy: -Math.random() * 60, life: 0.35, t: 0, color: "#64748b", size: 3 });
   }
 
+  // GD-style trail: fading squares left behind the cube every ~30ms.
+  function trail(x, y, color) {
+    particles.push({ x, y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 20, life: 0.35, t: 0, color, size: 8, noGravity: true });
+  }
+
   function confetti() {
     const colors = ["#38bdf8", "#f472b6", "#fbbf24", "#4ade80"];
     for (let i = 0; i < 90; i++) {
@@ -276,6 +281,11 @@ export const Entities = (() => {
     }
 
     updateMovement(dt);
+    player.trailT -= dt;
+    if (player.trailT <= 0) {
+      player.trailT = 0.03;
+      trail(player.x + 4, player.y + player.h / 2, gameState.theme.trail);
+    }
     updateJump(dt);
     updateVertical(dt);
     updateRunAnim(dt);
@@ -295,7 +305,7 @@ export const Entities = (() => {
       const p = particles[i];
       p.t += dt;
       if (p.t >= p.life) { particles.splice(i, 1); continue; }
-      p.vy += 500 * dt;
+      if (!p.noGravity) p.vy += 500 * dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
     }
@@ -320,7 +330,7 @@ export const Entities = (() => {
     GRAV, AUTO_SPEED, JUMP_V, MAX_FALL, COYOTE, BUFFER, TILE,
     player, gameState,
     overlap, circleRect, fmtTime,
-    particles, sparkle, burst, dust, confetti,
+    particles, sparkle, burst, dust, trail, confetti,
     updateParticles, update, updateCamera, resetPlayer,
     setCallbacks,
   };

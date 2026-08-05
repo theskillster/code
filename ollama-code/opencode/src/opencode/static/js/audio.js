@@ -200,6 +200,11 @@ export const Audio = (() => {
 
   function isSoundOn() { return soundOn; }
 
+  // Current track's tempo for beat-synced visuals (120 if nothing is playing).
+  function getBpm() {
+    return musicTrack ? musicTrack.bpm : 120;
+  }
+
   function toggleSound() {
     soundOn = !soundOn;
     try {
@@ -215,5 +220,6 @@ export const Audio = (() => {
     ensureAudio, tone, sfx,
     playMusic, pauseMusic, stopMusic, musicActive,
     isSoundOn, toggleSound,
+    getBpm,
   };
 })();

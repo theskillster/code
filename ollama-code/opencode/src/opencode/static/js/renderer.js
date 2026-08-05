@@ -2,6 +2,7 @@
 // Depends on: Levels (for scene arrays, themes, stars, clouds, constants), Entities (for player, particles, gameState)
 // Exposes: draw(), updateHUD()
 
+import { Audio } from "./audio.js";
 import { Levels } from "./levels.js";
 import { Entities } from "./entities.js";
 
@@ -54,7 +55,7 @@ export const Renderer = (() => {
     ctx.closePath();
   }
 
-  // --- Background ---
+  // --- Background: deep neon gradient + beat-synced glow + scrolling grid ---
   function drawBackground() {
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, gameState.theme.sky[0]);
@@ -63,72 +64,45 @@ export const Renderer = (() => {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // Stars (parallax 0.15).
-    ctx.fillStyle = gameState.theme.star;
-    for (const s of stars) {
-      const sx = ((s.x - gameState.camera.x * 0.15) % W + W) % W;
-      ctx.globalAlpha = 0.35 + 0.3 * Math.sin(gameState.animTime * 2 + s.x);
-      ctx.beginPath();
-      ctx.arc(sx, s.y, s.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    // Beat pulse: background glow swells on the beat of the current track.
+    const bpm = Audio.getBpm();
+    const beat = (gameState.animTime * bpm) / 60;
+    const phase = beat - Math.floor(beat);
+    const pulse = phase < 0.25 ? 1 + 0.18 * (1 - phase / 0.25) : 1;
+    ctx.globalAlpha = 0.10 * pulse;
+    ctx.fillStyle = gameState.theme.glow;
+    ctx.fillRect(0, H - 220, W, 220);
     ctx.globalAlpha = 1;
 
-    // Moon glow.
-    const moonX = W - 110 - gameState.camera.x * 0.05;
-    const moonY = 84;
-    const glow = ctx.createRadialGradient(moonX, moonY, 8, moonX, moonY, 90);
-    glow.addColorStop(0, "rgba(226,232,240,0.28)");
-    glow.addColorStop(1, "rgba(226,232,240,0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(moonX - 90, moonY - 90, 180, 180);
-    ctx.fillStyle = gameState.theme.moon;
-    ctx.beginPath();
-    ctx.arc(moonX, moonY, 26, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = gameState.theme.star;
-    ctx.beginPath();
-    ctx.arc(moonX - 10, moonY - 6, 5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Cloud layers (parallax).
-    ctx.fillStyle = "rgba(148,163,184,0.14)";
-    for (const c of clouds) {
-      const cx = ((c.x - gameState.camera.x * 0.35) % (W + 200) + W + 200) % (W + 200) - 100;
-      const s = c.s;
+    // Scrolling vertical grid lines (parallax with the auto-run).
+    ctx.strokeStyle = "rgba(148,163,184,0.10)";
+    ctx.lineWidth = 1;
+    const tile = Levels.TILE;
+    const off = -((gameState.camera.x * 0.6) % tile);
+    for (let x = off; x < W; x += tile) {
       ctx.beginPath();
-      ctx.arc(cx, c.y, 26 * s, 0, Math.PI * 2);
-      ctx.arc(cx + 30 * s, c.y - 10 * s, 20 * s, 0, Math.PI * 2);
-      ctx.arc(cx + 55 * s, c.y, 24 * s, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
     }
-
-    // Parallax hills.
-    const hill = (offset, baseY, r, spacing, color) => {
-      ctx.fillStyle = color;
-      const start = Math.floor(offset / spacing) - 1;
-      for (let i = start; i < start + W / spacing + 2; i++) {
-        ctx.beginPath();
-        ctx.arc(i * spacing - offset, baseY, r, Math.PI, 0);
-        ctx.fill();
-      }
-    };
-    hill(gameState.camera.x * 0.25, 420, 130, 260, gameState.theme.hillA);
-    hill(gameState.camera.x * 0.45, 452, 90, 200, gameState.theme.hillB);
   }
 
   // --- Platforms ---
   function drawPlatforms() {
     for (const p of platforms) {
       if (p.kind === "ground") {
-        ctx.fillStyle = gameState.theme.groundTop;
-        ctx.fillRect(p.x, p.y + 6, p.w, p.h - 6);
         ctx.fillStyle = gameState.theme.groundBody;
-        ctx.fillRect(p.x, p.y + 10, p.w, p.h - 14);
-        ctx.fillStyle = gameState.theme.groundEdge;
-        ctx.fillRect(p.x, p.y, p.w, 5);
-        ctx.fillStyle = gameState.theme.groundGlow;
-        ctx.fillRect(p.x, p.y + 5, p.w, 8);
+        ctx.fillRect(p.x, p.y + 6, p.w, p.h - 6);
+        ctx.fillStyle = gameState.theme.groundTop;
+        ctx.fillRect(p.x, p.y, p.w, 6);
+        ctx.strokeStyle = "rgba(148,163,184,0.25)";
+        ctx.lineWidth = 1;
+        for (let gx = p.x - (p.x % 48); gx < p.x + p.w; gx += 48) {
+          ctx.beginPath();
+          ctx.moveTo(gx, p.y);
+          ctx.lineTo(gx, p.y + p.h);
+          ctx.stroke();
+        }
       } else if (p.kind === "plat") {
         ctx.fillStyle = gameState.theme.platBody;
         roundRect(p.x, p.y, p.w, p.h, 8);
@@ -139,10 +113,12 @@ export const Renderer = (() => {
     }
   }
 
-  // --- Spikes ---
+  // --- Spikes: neon triangles with glow ---
   function drawSpikes() {
     for (const s of spikes) {
-      ctx.fillStyle = "#ef4444";
+      ctx.shadowColor = gameState.theme.spike;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = gameState.theme.spike;
       const n = Math.floor(s.w / 14);
       for (let i = 0; i < n; i++) {
         const x0 = s.x + i * 14;
@@ -152,6 +128,7 @@ export const Renderer = (() => {
         ctx.lineTo(x0 + 14, s.y + s.h);
         ctx.fill();
       }
+      ctx.shadowBlur = 0;
     }
   }
 
@@ -185,40 +162,35 @@ export const Renderer = (() => {
     }
   }
 
-  // --- Player ---
+  // --- Player: spinning neon cube (GD-style) ---
   function drawPlayer() {
-    // Fast strobe while dying; slow blink while invulnerable after respawn.
+    const col = gameState.theme.cube;
+    const inner = gameState.theme.cubeInner;
+    const size = 40;
+    const cx = player.x + player.w / 2;
+    const cy = player.y + player.h / 2;
     const dying = gameState.dying > 0;
-    const blink = dying
-      ? Math.floor((0.65 - gameState.dying) * 20) % 2 === 0
-      : player.invuln > 0 && Math.floor(player.invuln * 12) % 2 === 0;
+    // Fast strobe while dying.
+    if (dying) {
+      ctx.globalAlpha = Math.floor(gameState.dying * 20) % 2 === 0 ? 0.2 : 1;
+    }
     ctx.save();
-    ctx.globalAlpha = blink ? 0.15 : 1;
-    ctx.translate(player.x + player.w / 2, player.y + player.h);
-    ctx.scale(player.facing, 1);
-    const str = player.onGround && Math.abs(player.vx) > 0 ? Math.sin(player.run || 0) * 6 : 0;
-    const legLift = player.onGround ? 0 : -5;
-    ctx.fillStyle = "#155e75";
-    ctx.fillRect(-10 + str * 0.5, -12 + legLift, 8, 12);
-    ctx.fillRect(2 - str * 0.5, -12 + legLift, 8, 12);
-    ctx.fillStyle = "#22d3ee";
-    roundRect(-14, -34, 28, 24, 9);
-    ctx.fill();
-    ctx.fillStyle = "#a5f3fc";
-    roundRect(-6, -28, 12, 14, 6);
-    ctx.fill();
-    ctx.fillStyle = "#f472b6";
-    ctx.fillRect(-1, -41, 3, 8);
-    ctx.beginPath();
-    ctx.arc(0.5, -41, 3.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#0f172a";
-    ctx.fillRect(4, -29, 5, 6);
-    ctx.fillRect(-9, -29, 5, 6);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(5.5, -28, 2, 2);
-    ctx.fillRect(-7.5, -28, 2, 2);
+    ctx.translate(cx, cy);
+    ctx.rotate((player.angle * Math.PI) / 180);
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = col;
+    ctx.fillRect(-size / 2, -size / 2, size, size);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = inner;
+    ctx.fillRect(-size / 2 + 5, -size / 2 + 5, size - 10, size - 10);
+    ctx.fillStyle = col;
+    ctx.fillRect(-size / 2 + 8, -size / 2 + 8, size - 16, size - 16);
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(-size / 2 + 1, -size / 2 + 1, size - 2, size - 2);
     ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   // --- Particles ---

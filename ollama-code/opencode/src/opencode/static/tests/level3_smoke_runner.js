@@ -126,9 +126,27 @@ for (const lvl of [1, 2, 3]) {
     unreachable.map((s) => s.kind + "@" + s.x).join(","));
 }
 
+// ---- Task 5: visual API ----
+check("Audio.getBpm exists", typeof Audio.getBpm === "function");
+check("theme has cube color", !!Entities.gameState.theme.cube);
+window.__neon.loadLevel(2);
+check("level 2 theme is purple", Entities.gameState.theme.cube === "#e879f9");
+// Angle snaps to the nearest 90 on landing: drop the cube from just above
+// the ground with a non-square angle; the landing frame must snap it.
+Input.keys.jump = false; // don't bounce — force a real landing
+Entities.gameState.dying = 0; // clear the death beat left by the block-side test
+const p5 = Entities.player;
+p5.x = 120; p5.y = Levels.GROUND_Y - 56; p5.vy = 0; p5.angle = 123;
+p5.onGround = false;
+for (let i = 0; i < 10 && !p5.onGround; i++) Entities.update(0.016);
+check("cube angle snaps to 90 on landing", p5.angle % 90 === 0, "angle=" + p5.angle);
+// ---------------- end of task block ----------------
+
 // ---- Task 5 wiring (kept essentials) ----
+check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
+window.__neon.loadLevel(3);
 Renderer.updateHUD();
-check("badge shows a level name", document.getElementById("level-name-badge").textContent.length > 0,
+check("badge shows Sunflare Ridge", document.getElementById("level-name-badge").textContent === "Sunflare Ridge",
   document.getElementById("level-name-badge").textContent);
 
 results.textContent = out.join("\n");
