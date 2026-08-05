@@ -190,6 +190,43 @@ check("gap width is within jump range", Levels.gaps.every((g) => g.w <= 180),
   Levels.gaps.map((g) => g.w).join(","));
 // ---------------- end of task block ----------------
 
+// ---- Task 7: jump-orb physics ----
+window.__neon.loadLevel(3);
+const pO = Entities.player;
+const orb0 = Levels.orbs[0];
+pO.x = orb0.x - 6; pO.y = orb0.y - 10; pO.vy = 0; pO.onGround = false; pO.invuln = 0;
+Entities.gameState.dying = 0;
+Input.keys.jump = false;
+Input.setKey("Space", true); // fresh tap edge → jumpBuffer
+Entities.update(0.016);
+check("orb tap re-jumps mid-air", pO.vy === -Entities.JUMP_V, "vy=" + pO.vy);
+check("orb is consumed on use", orb0.used === true);
+// Holding jump alone must never trigger an orb (no tap edge fired).
+window.__neon.loadLevel(3);
+const pOH = Entities.player;
+const orbH = Levels.orbs[0];
+pOH.x = orbH.x - 6; pOH.y = orbH.y - 10; pOH.vy = 0; pOH.onGround = false; pOH.invuln = 0;
+Entities.gameState.dying = 0;
+Input.keys.jump = true; // hold only — jumpPressed stays false
+Entities.update(0.016);
+check("holding alone never fires an orb", !orbH.used, "used=" + orbH.used);
+Input.keys.jump = false;
+// Ground taps must not double-jump via an orb: a fresh tap while grounded is
+// consumed by updateJump (buffer zeroed), so even an orb overlapping the
+// grounded player must NOT fire. Push a temporary orb right on top of the
+// grounded player to prove it.
+window.__neon.loadLevel(3);
+const pG = Entities.player;
+pG.x = 120; pG.y = Levels.GROUND_Y - 46; pG.vy = 0; pG.onGround = true; pG.invuln = 0;
+const orbG = { x: pG.x + 17, y: Levels.GROUND_Y - 10, r: 18, used: false };
+Levels.orbs.push(orbG);
+Entities.gameState.dying = 0;
+Input.keys.jump = false;
+Input.setKey("Space", true);
+Entities.update(0.016);
+check("ground tap under an orb does not fire the orb", !orbG.used, "used=" + orbG.used);
+// ---------------- end of task block ----------------
+
 // ---- Task 5 wiring (kept essentials) ----
 check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
 window.__neon.loadLevel(3);

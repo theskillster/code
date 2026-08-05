@@ -14,7 +14,7 @@ export const Entities = (() => {
   const { sfx } = Audio;
   const {
     GROUND_H, GROUND_Y, W, H,
-    platforms, coins, spikes,
+    platforms, coins, spikes, orbs,
     LEVELS, THEMES, LEVEL_MAX_W,
   } = Levels;
 
@@ -230,6 +230,28 @@ export const Entities = (() => {
     }
   }
 
+  // Jump orbs (GD-style): tap while airborne and overlapping an unused orb to
+  // get an immediate mid-air re-jump. One-shot; consumed on use. Fires on the
+  // tap edge (jumpBuffer > 0) only — holding alone never triggers it, and a
+  // ground tap was already consumed by updateJump (buffer zeroed there).
+  // Runs AFTER updateVertical so the re-jump velocity is exactly -JUMP_V on
+  // the frame it fires (gravity applies next frame, like the harness asserts).
+  function updateOrbs() {
+    if (player.onGround || player.jumpBuffer <= 0) return;
+    for (const o of orbs) {
+      if (o.used) continue;
+      if (circleRect(o.x, o.y, o.r, player)) {
+        o.used = true;
+        player.jumpBuffer = 0;
+        player.vy = -JUMP_V;
+        player.coyote = 0;
+        sfx.jump();
+        dust(player.x + player.w / 2, player.y + player.h, 5);
+        break;
+      }
+    }
+  }
+
   // Spikes: instant hurt on contact.
   function updateSpikes() {
     if (player.invuln <= 0) {
@@ -277,6 +299,7 @@ export const Entities = (() => {
     }
     updateJump(dt);
     updateVertical(dt);
+    updateOrbs();
     updateRunAnim(dt);
     updateCoins();
     updateSpikes();
