@@ -250,26 +250,17 @@ export const Levels = (() => {
         coinArc(3560, 400, 3);
         block(3736, GROUND_Y - 48);
         coin(3760, GROUND_Y - 96);
-        // Gap 2 (4004–4184) with the jump orb above.
-        // Post-gap-2 hazards on the orb-extended ≈4270+204k cadence:
-        block(4372, GROUND_Y - 48);
-        coin(4396, GROUND_Y - 96);
-        spike(4576);
-        coinArc(4600, 400, 3);
-        block(4780, GROUND_Y - 48);
-        coin(4804, GROUND_Y - 96);
-        spike(4984);
-        coinArc(5010, 400, 3);
-        block(5188, GROUND_Y - 48);
-        coin(5212, GROUND_Y - 96);
-        spike(5392);
-        coinArc(5420, 400, 3);
-        block(5596, GROUND_Y - 48);
-        coin(5620, GROUND_Y - 96);
-        spike(5800);
-        coinArc(5820, 400, 3);
-        block(6004, GROUND_Y - 48);
-        coin(6028, GROUND_Y - 96);
+        // Gap 2 (4004–4184) with the jump orb above. The orb is a BONUS:
+        // the two post-gap landing phases (natural ≈4200, orb-extended
+        // ≈4270) are 74px apart, so no hazard cadence is safe for both —
+        // the tail after the pit is therefore a safe coin run to the flag.
+        // The harness proves BOTH the orb path and the no-orb path beat it
+        // with 0 deaths.
+        coinArc(4320, 400, 5);
+        coinArc(4700, 400, 5);
+        coinArc(5100, 400, 5);
+        coinArc(5500, 400, 5);
+        coinArc(5900, 400, 5);
       },
     },
   };

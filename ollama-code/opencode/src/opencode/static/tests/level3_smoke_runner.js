@@ -197,7 +197,7 @@ function overhangAhead(p) {
   return false;
 }
 
-function simulateTimed(lvl) {
+function simulateTimed(lvl, useOrbs = true) {
   window.__neon.playLevel(lvl);
   Input.keys.jump = false;
   Entities.gameState.dying = 0;
@@ -215,7 +215,7 @@ function simulateTimed(lvl) {
       // far edge; re-jump only when the landing lands 12px+ past the far edge.
       const inGap = Levels.gaps.some((g) => landX > g.x && landX < g.x + g.w + 12);
       Input.keys.jump = !(inGap || overhangAhead(p));
-    } else {
+    } else if (useOrbs) {
       const orb = Levels.orbs.find((o) => !o.used && !tappedOrbs.has(o) &&
         Math.abs(o.x - (p.x + p.w / 2)) < o.r + 14 &&
         Math.abs(o.y - (p.y + p.h / 2)) < o.r + 14);
@@ -368,6 +368,12 @@ check("level 3 hold-jump CANNOT clear it (requires timing)", !h3.won && h3.death
 const t3 = simulateTimed(3);
 check("level 3 timed-policy beats it with 0 deaths", t3.won && t3.deaths === 0,
   "won=" + t3.won + " deaths=" + t3.deaths + " deathXs=" + t3.deathXs.join(","));
+// A player who misses the orb over Gap 2 must still be able to finish the
+// tail: the tail is tuned on the orb-extended cadence, so prove the no-orb
+// path is ALSO clearable (the orb is a bonus, not a requirement).
+const t3no = simulateTimed(3, false);
+check("level 3 is beatable without the orb (bonus, not required)", t3no.won && t3no.deaths === 0,
+  "won=" + t3no.won + " deaths=" + t3no.deaths + " deathXs=" + t3no.deathXs.join(","));
 // ---------------- end of task block ----------------
 
 // ---- Task 5 wiring (kept essentials) ----

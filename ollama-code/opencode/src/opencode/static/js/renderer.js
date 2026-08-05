@@ -141,8 +141,11 @@ export const Renderer = (() => {
       ctx.fillStyle = "rgba(255,255,255,0.12)";
       ctx.fillRect(b.x + 7, b.y + 7, b.w - 14, b.h - 14);
       // Elevated blocks are overhangs — jumping into the underside kills.
-      // Warn with a hazard stripe along the underside.
-      if (b.y < GROUND_Y - 46) {
+      // Warn with a hazard stripe along the underside. Match the physics
+      // policy: an overhang's BOTTOM edge (b.y + b.h) sits above the grounded
+      // player's top (GROUND_Y - 46); normal ground-level blocks (bottom ==
+      // GROUND_Y) never qualify.
+      if (b.y + b.h < GROUND_Y - 46) {
         ctx.fillStyle = "rgba(248,113,113,0.25)";
         ctx.fillRect(b.x + 2, b.y + b.h - 6, b.w - 4, 4);
       }
