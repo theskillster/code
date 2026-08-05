@@ -11,30 +11,39 @@ front end.
 
 ## 🎮 The game
 
-Neon Runner is a classic side-scrolling platformer with **three levels**:
+Neon Runner is a **Geometry Dash–style rhythm runner** with **three levels** —
+auto-run, jump-only, no enemies:
 
-**Level 1 — Neon Meadows** (5,120 px):
+**Level 1 — Neon Meadows** (4,800 px):
 
-- Run, jump, and **stomp enemies** to clear them
-- **Collect 30 coins** scattered across the level
-- Dodge **spike traps** and bottomless gaps
-- Reach the waving flag at the end to win
+- Your cube **auto-runs**; the only input is jump
+- Dodge **single spikes** and hop **block tiles** (block *sides* are lethal)
+- Grab **coins** along the way
 
-**Level 2 — The Voltage Vault** (4,600 px, unlocked after Level 1):
+**Level 2 — The Voltage Vault** (5,100 px):
 
-- Harder: spike landings, wider-feeling jumps, **faster patrolling enemies**
-- New enemy: **volts** — electric flyers that bob up and down over gaps and guard treasures
-- New feature: **keys & gates** — locked gates block your path until you grab their key
+- Faster tempo, tighter rhythm — spikes and blocks alternate the whole way
+- No enemies: the **level itself is the obstacle**
 
-**Level 3 — Sunflare Ridge** (6,200 px, unlocked after Level 2):
+**Level 3 — Sunflare Ridge** (6,200 px):
 
-- The longest level: **dashing darters** (telegraph, then charge), flying volts, plasma turrets, and two key/gate pairs
-- New pickups: **life hearts** restore an extra life (max 6)
-- Brightest palette and fastest BGM track yet
+- The final gauntlet: **double spike rows** mixed with block towers
+- Memorize the rhythm. Beat it to win the game.
 
-All three levels share **3 lives** (score and lives carry over between levels); falling
-into a pit or touching an enemy/spike costs one. Finish a level fast for a **time
-bonus**, and your **best total score** is saved between visits.
+You die in **one hit** — spikes and block sides kill. The level restarts
+**instantly** from x=0. **Attempts** count every restart; **Best %** remembers
+your furthest run. Coins are optional collectibles.
+
+### Controls
+
+| Action        | Keys                                          |
+| ------------- | --------------------------------------------- |
+| Jump          | `Space`, `↑`, `W`, or click — **hold to keep bouncing** |
+| Pause         | `P` (or the ⏸ button)                         |
+| Restart level | `R`                                           |
+| Mute          | 🔊 button (remembered next visit)             |
+
+On touchscreens, one big **TAP** button appears automatically.
 
 ### Controls
 
@@ -49,14 +58,12 @@ bonus**, and your **best total score** is saved between visits.
 
 On touchscreens, on-screen ◀ ▶ ⬆ buttons appear automatically.
 
-### Scoring
+### Progress & attempts
 
-| Action          | Points  |
-| --------------- | ------- |
-| Coin            | +10     |
-| Stomp an enemy  | +50     |
-| Collect a key   | +100    |
-| Time bonus      | up to +300 per level (300 − seconds, min 0) |
+- You die in **one hit** — spikes and block sides kill. The level restarts instantly.
+- **Attempts** count every restart; **Best %** remembers your furthest run.
+- **Coins** are optional collectibles — grab them all for bragging rights.
+- Finish a level to advance; beat all three to win.
 
 ---
 
@@ -88,12 +95,12 @@ On touchscreens, on-screen ◀ ▶ ⬆ buttons appear automatically.
         └── static/
             ├── css/main.css  # page + game styling (dark neon theme)
             └── js/           # the game — six ES modules + bootstrap
-                ├── audio.js    # WebAudio synth + procedural BGM
-                ├── input.js    # keyboard + touch controls
-                ├── levels.js   # level data, themes, constants, builders
-                ├── entities.js # physics, player, enemies, update systems
-                ├── renderer.js # all draw functions, canvas, HUD
-                ├── game.js     # orchestrator: state machine, loop, wiring
+                ├── audio.js    # WebAudio synth + procedural BGM (getBpm for beat sync)
+                ├── input.js    # keyboard + touch controls (jump-only)
+                ├── levels.js   # GD level data (ground/block/spike/coin), neon themes
+                ├── entities.js # physics: auto-run, fixed jump, lethal block sides
+                ├── renderer.js # cube + grid floor + beat pulses, canvas, HUD
+                ├── game.js     # orchestrator: state machine, loop, attempts/percent
                 └── main.js     # bootstrap entry (loads the module graph)
 ```
 
@@ -124,9 +131,9 @@ uv run ruff format .         # format
 
 - **`routes.py`** — a single route (`/`) that renders `index.html`; all the game
   logic lives in the browser.
-- **`templates/index.html`** — the game's markup: a HUD bar (score / coins /
-  lives / best / time), the `<canvas>`, an overlay for menu/pause/win/game-over,
-  and the touch buttons.
+- **`templates/index.html`** — the game's markup: a HUD bar (coins / attempts /
+  best % / progress bar), the `<canvas>`, an overlay for menu/pause/win, and a
+  single touch jump button.
 - **`static/js/main.js`** — bootstrap entry: imports `game.js`, which pulls in the full module graph (`audio → input → levels → entities → renderer`) as **native ES modules** — no bundler, no build step, no load-order bookkeeping. `base.html` loads only this one `<script type="module">`.
 - **`static/tests/level3_smoke.html`** — browser-based smoke test (loads the modules against a stub DOM and asserts on real behavior). Open it in the running server; every line must print PASS.
 - **`static/css/main.css`** — the dark neon theme and responsive layout.

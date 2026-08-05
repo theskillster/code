@@ -5,4 +5,4 @@ main_bp = Blueprint("main", __name__)
 
 @main_bp.route("/")
 def index():
-    return render_template("index.html", title="OpenCode", message="Hello from Flask!")
+    return render_template("index.html", title="Neon Runner")

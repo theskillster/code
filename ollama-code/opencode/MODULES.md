@@ -5,6 +5,7 @@
 ## JS module dependency graph
 
 ```
+```
 ┌─────────────┐         ┌──────────────┐
 │   audio.js  │         │   input.js   │
 │ (no deps)   │         │ (no deps)    │
@@ -17,11 +18,13 @@
 └──────┬───────────────────────────────┬───────┘
        │                               │
        ▼                               ▼
-┌──────────────────┐          ┌──────────────────┐
-│  entities.js     │          │  renderer.js     │
-│  (physics,       │          │  (all draw fns)  │
-│   update logic)  │          │  canvas, HUD)    │
-└──────┬───────────┘          └────────┬─────────┘
+┌──────────────────┐          ┌─────────────────────┐
+│  entities.js     │          │  renderer.js        │
+│  (physics,       │          │  (all draw fns,     │
+│   update logic)  │          │   canvas, HUD)      │
+└──────┬───────────┘          │   imports audio.js  │
+       │                      │   for beat sync     │
+       │                      └────────┬────────────┘
        │                               │
        ▼                               ▼
 ┌──────────────────────────────────────────────┐
@@ -40,14 +43,14 @@
 
 | Module | Lines | Responsibility |
 |--------|-------|---------------|
-| `audio.js` | 219 | WebAudio synth — `ensureAudio()`, `tone()`, `sfx` (incl. `sfx.life` chime), procedural BGM (`playMusic`/`pauseMusic`/`stopMusic`, 3 per-level tracks) |
-| `input.js` | 85 | Keyboard + touch input — `keys`, `bindInput()` |
-| `levels.js` | 391 | Level data (3 levels), themes (base+overrides), constants, seeded PRNG, builder helpers |
-| `entities.js` | 484 | Physics, player, collisions, particles, 14 update systems (incl. darter state machine + `updateLives`) |
-| `renderer.js` | 553 | All draw functions, canvas setup, HUD (incl. `drawDarter`, `drawLifePickups`) |
-| `game.js` | 385 | State machine, game loop, wiring, init, safe respawn, overlay countdowns, per-level intro copy, BGM control |
+| `audio.js` | 225 | WebAudio synth — `ensureAudio()`, `tone()`, `sfx`, procedural BGM (3 per-level tracks), `getBpm()` for beat-synced visuals |
+| `input.js` | 72 | Keyboard + touch input — jump-only `keys`, `bindInput()` |
+| `levels.js` | 310 | GD level data (3 levels: ground/block/spike/coin layouts), neon themes, constants |
+| `entities.js` | 336 | Physics: auto-run, fixed-height jump, lethal block sides, particles, trail, death beat |
+| `renderer.js` | 240 | All draw functions — spinning cube, grid floor, beat pulse, neon spikes/blocks, HUD (coins/attempts/best/progress) |
+| `game.js` | 300 | State machine, game loop, instant-restart + attempts/percent, overlay countdowns, per-level intro copy, BGM control |
 | `main.js` | 6 | Bootstrap entry — imports `game.js` |
-| **Total** | **2,123** | |
+| **Total** | **1,489** | |
 
 ## Module loading (ES modules)
 
@@ -66,11 +69,12 @@ no HTML edits.
 
 `static/tests/level3_smoke.html` loads `level3_smoke_runner.js`, a module that
 imports the six game modules against a stub DOM and asserts on real behavior:
-level geometry (width, coin/checkpoint counts, jump-reachability BFS over the
-physics constants), darter behavior (wait → windup → dash, stomp vs. hurt),
-life-heart collection + HUD cap, track-3 startup, and the win → level-3-intro
-flow. Run it at `/static/tests/level3_smoke.html` in the running preview
-server (module scripts need http, not file://).
+auto-run + fixed-height jump + cube spin, instant-restart death loop with
+attempts and percent, absence of enemies/keys/gates/hearts, lethal block sides
+vs. safe block tops, per-level jump-reachability BFS over the physics
+constants, and the visual API (themes, `Audio.getBpm`, angle snap). Run it at
+`/static/tests/level3_smoke.html` in the running preview server (module
+scripts need http, not file://).
 
 ## Python backend
 
