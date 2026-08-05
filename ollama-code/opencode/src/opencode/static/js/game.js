@@ -98,7 +98,7 @@ import { Renderer } from "./renderer.js";
     ensureAudio();
     keys.jumpPressed = false;
     gameState.score = 0;
-    gameState.lives = 3;
+    gameState.attempts = 0;
     loadLevel(1);
     resetPlayer();
     gameState.state = "playing";
@@ -164,113 +164,34 @@ import { Renderer } from "./renderer.js";
     if (gameState.state === "playing" || gameState.state === "paused") start();
   }
 
-  // --- Hurt / Win / Game over callbacks (set up via setCallbacks) ---
-  // Hit detected: play the sound, pop a burst, freeze the player and start
-  // the death beat. The life is NOT deducted here — resolveHurt does that
-  // after the flash so the player has a moment to register the hit.
+  // --- Hurt / Win callbacks (set up via setCallbacks) ---
+  // Hit detected: play the sound, pop a shatter burst, and start the death
+  // beat. After the beat the level restarts from x=0 — no lives involved.
   function onHurt(fell = false) {
-    // Falling into a void must always resolve, even mid-invulnerability,
-    // otherwise the player would fall forever (soft-lock).
-    if (!fell && (player.invuln > 0 || gameState.dying > 0)) return;
+    if (!fell && gameState.dying > 0) return;
     sfx.hurt();
-    burst(player.x + player.w / 2, player.y + player.h / 2, 14);
+    burst(player.x + player.w / 2, player.y + player.h / 2, 18);
     player.vx = 0;
     player.vy = 0;
-    gameState.dying = 0.65; // ~650ms of flashing before respawn
+    gameState.dying = 0.5; // ~500ms shatter before restart
   }
 
-  // --- Safe respawn ---
-  // A checkpoint can sit right inside an enemy patrol zone or next to a
-  // spike, so on death we look for the nearest clear surface behind it
-  // (up to one full screen back) instead of dropping the player onto a foe.
-  const RESPAWN_CLEARANCE = 200; // px a spawn point must clear hazards by
-  const RESPAWN_SCAN_STEP = 40;
-  const RESPAWN_SCAN_BACK = W; // one full screen back, max
-
-  // Is a player standing with feet at (x, y) clear of every hazard?
-  function spotIsClear(x, y) {
-    const cx = x + player.w / 2;
-    const cy = y + player.h / 2;
-    // Enemies (alive ones).
-    for (const e of Levels.enemies) {
-      if (!e.alive) continue;
-      const ex = e.x + e.w / 2;
-      const ey = e.y + e.h / 2;
-      if (Math.abs(ex - cx) < RESPAWN_CLEARANCE + e.w / 2 &&
-          Math.abs(ey - cy) < RESPAWN_CLEARANCE + e.h / 2) return false;
-    }
-    // Spikes: don't stand on top of one.
-    for (const s of Levels.spikes) {
-      if (x + player.w > s.x - 8 && x < s.x + s.w + 8 && y + player.h > s.y) return false;
-    }
-    // Unopened gates are solid walls — don't spawn inside them.
-    for (const g of Levels.gates) {
-      if (g.opened) continue;
-      if (x + player.w > g.x && x < g.x + g.w) return false;
-    }
-    return true;
-  }
-
-  // Top surface (y) of the highest platform spanning the player at x, or null.
-  function surfaceAt(x) {
-    let top = null;
-    for (const p of Levels.platforms) {
-      if (p.x <= x + player.w && x <= p.x + p.w) {
-        if (top === null || p.y < top) top = p.y;
-      }
-    }
-    return top;
-  }
-
-  // Choose a respawn spot: the checkpoint if clear, else scan back.
-  function findSafeRespawn() {
-    const cp = gameState.checkpoint;
-    if (spotIsClear(cp.x, cp.y)) return { x: cp.x, y: cp.y };
-    for (let x = cp.x - RESPAWN_SCAN_STEP; x >= cp.x - RESPAWN_SCAN_BACK; x -= RESPAWN_SCAN_STEP) {
-      const top = surfaceAt(x);
-      if (top === null) continue;
-      const y = top - player.h;
-      if (spotIsClear(x, y)) return { x, y };
-    }
-    // Nothing clear within a screen — checkpoint it is (invuln covers it).
-    return { x: cp.x, y: cp.y };
-  }
-
-  // Called by the update loop once the dying timer reaches zero.
+  // Called once the dying timer reaches zero: restart the level, count the attempt.
   function resolveHurt() {
     gameState.dying = 0;
-    gameState.lives--;
-    if (gameState.lives <= 0) {
-      onGameOver();
-      return;
-    }
-    const spot = findSafeRespawn();
-    player.x = spot.x;
-    player.y = spot.y;
-    player.vx = 0;
-    player.vy = 0;
-    player.invuln = 2.2;
-    dust(player.x + player.w / 2, player.y + player.h, 6);
+    gameState.attempts++;
+    playLevel(gameState.currentLevel);
   }
 
   function onWin() {
-    const bonus = Math.max(0, 300 - Math.floor(gameState.time));
-    gameState.score += bonus;
-    if (gameState.score > best) {
-      best = gameState.score;
-      gameState.best = best;
-      lsSet("opencode-best", String(best));
-    }
     gameState.state = "win";
     stopMusic();
     sfx.win();
     confetti();
     const level = LEVELS[gameState.currentLevel];
     if (gameState.currentLevel < gameState.totalLevels) {
-      // Level-complete screen: show the results, then auto-advance after a
-      // short beat (the button becomes a skip).
       const completeText =
-        `Score <strong>${gameState.score}</strong> (incl. time bonus +${bonus}) \u00B7 Coins ${gameState.coinCount}/${gameState.totalCoins} \u00B7 Time ${fmtTime(gameState.time)}`;
+        `Coins <strong>${gameState.coinCount}/${gameState.totalCoins}</strong> \u00B7 Attempts <strong>${gameState.attempts}</strong>`;
       startOverlayCountdown(LEVEL_COMPLETE_SECONDS, completeText, "Continuing", nextLevel);
       showOverlay(
         `Level ${gameState.currentLevel} complete! \uD83C\uDFC1`,
@@ -281,23 +202,11 @@ import { Renderer } from "./renderer.js";
     } else {
       showOverlay(
         "You beat the game! \uD83C\uDFC6",
-        `Final score <strong>${gameState.score}</strong> (incl. bonuses) \u00B7 Coins ${gameState.coinCount}/${gameState.totalCoins} \u00B7 Time ${fmtTime(gameState.time)}<br>Best <strong>${best}</strong>`,
+        `All ${gameState.totalLevels} levels \u00B7 Coins ${gameState.coinCount} \u00B7 Best <strong>${best}%</strong>`,
         "Play again",
         start
       );
     }
-  }
-
-  function onGameOver() {
-    gameState.state = "over";
-    stopMusic();
-    sfx.over();
-    showOverlay(
-      "Game over",
-      `You ran out of lives on Level ${gameState.currentLevel}. Score <strong>${gameState.score}</strong> \u00B7 Best <strong>${best}</strong>`,
-      "Try again",
-      start
-    );
   }
 
   // --- Game loop ---
@@ -326,6 +235,12 @@ import { Renderer } from "./renderer.js";
     if (gameState.state === "playing") {
       update(dt);
       updateCamera();
+      const pct = Math.floor((player.x / gameState.levelW) * 100);
+      if (pct > best) {
+        best = pct;
+        gameState.best = best;
+        lsSet("opencode-best", String(best));
+      }
     }
     updateParticles(dt);
     draw();
@@ -334,7 +249,7 @@ import { Renderer } from "./renderer.js";
   }
 
   // --- Wire up callbacks ---
-  setCallbacks(onHurt, onWin, onGameOver, resolveHurt);
+  setCallbacks(onHurt, onWin, resolveHurt);
 
   // --- Wire up input ---
   bindInput(
@@ -371,7 +286,8 @@ import { Renderer } from "./renderer.js";
   window.__neon = { playLevel, loadLevel: loadLevel, start, player, enemies: Levels.enemies, projectiles: Levels.projectiles };
 
   // --- Initialize ---
-  best = Math.max(parseInt(lsGet("opencode-best") || "0", 10) || 0, 0);
+  // best is now a percent (0-100); clamp legacy score values from old versions.
+  best = Math.max(0, Math.min(100, parseInt(lsGet("opencode-best") || "0", 10) || 0));
   gameState.best = best;
   loadLevel(1);
   resetPlayer();

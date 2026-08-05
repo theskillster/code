@@ -50,7 +50,7 @@ export const Entities = (() => {
     score: 0,
     coinCount: 0,
     keyCount: 0,
-    lives: 3,
+    attempts: 0,
     time: 0,
     best: 0,
     levelW: LEVEL_MAX_W,
@@ -64,7 +64,7 @@ export const Entities = (() => {
     camera: { x: 0 },
     overlayAction: null,
     // Death-sequence timer: while > 0, the player is frozen & flashing
-    // before the life is actually deducted and they respawn.
+    // before the level restarts and the attempt is counted.
     dying: 0,
   };
 
@@ -74,10 +74,9 @@ export const Entities = (() => {
   let _onGameOver = null;
   let _onHurtResolve = null;
 
-  function setCallbacks(onHurt, onWin, onGameOver, onHurtResolve) {
+  function setCallbacks(onHurt, onWin, onHurtResolve) {
     _onHurt = onHurt;
     _onWin = onWin;
-    _onGameOver = onGameOver;
     _onHurtResolve = onHurtResolve;
   }
 
@@ -251,23 +250,6 @@ export const Entities = (() => {
     }
   }
 
-  // Life hearts: +1 life (capped at 6 so the HUD stays sane).
-  function updateLives() {
-    const gs = gameState;
-    for (const li of lifePickups) {
-      if (!li.taken && circleRect(li.x, li.y, li.r, player)) {
-        li.taken = true;
-        gs.score += 50;
-        if (gs.lives < 6) {
-          gs.lives++;
-          sfx.life();
-          sparkle(li.x, li.y);
-          burst(li.x, li.y, 12);
-        }
-      }
-    }
-  }
-
   // Enemies: patrol, flyer bob, shooter aim/fire, stomp detection.
   function updateEnemies(dt) {
     const gs = gameState;
@@ -387,10 +369,10 @@ export const Entities = (() => {
     }
   }
 
-  // Boundaries: fell into a pit or reached the flag.
+  // Boundaries: fell into a pit, or reached the end of the level (100%).
   function updateBoundaries() {
     if (player.y > H + 80 && _onHurt) _onHurt(true);
-    if (player.x + player.w > flag.x && player.y + player.h > GROUND_Y - 40 && _onWin) _onWin();
+    if (player.x + player.w >= gameState.levelW && _onWin) _onWin();
   }
 
   // Checkpoints: update respawn point when player passes a milestone.
@@ -435,7 +417,6 @@ export const Entities = (() => {
     updateRunAnim(dt);
     updateCoins();
     updateKeys();
-    updateLives();
     updateEnemies(dt);
     updateProjectiles(dt);
     updateSpikes();

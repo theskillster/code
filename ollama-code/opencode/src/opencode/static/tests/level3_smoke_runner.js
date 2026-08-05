@@ -105,6 +105,26 @@ if (hasLegacyPlats) {
     unreachable.map((s) => s.kind + "@" + s.x).join(","));
 }
 
+// ---- Task 2: death = instant restart ----
+window.__neon.loadLevel(1);
+const p2 = Entities.player;
+Entities.gameState.attempts = 3;
+p2.x = 100; p2.y = Levels.GROUND_Y - 46; p2.vy = 0; p2.onGround = true; p2.invuln = 0;
+const spike0 = Levels.spikes[0];
+p2.x = spike0.x - 10; // walk into the first spike
+for (let i = 0; i < 60 && Entities.gameState.dying === 0; i++) Entities.update(0.016);
+check("spike contact starts the death beat", Entities.gameState.dying > 0, "dying=" + Entities.gameState.dying);
+check("no life is deducted (no lives system)", !("lives" in Entities.gameState));
+// After the beat the level restarts at x=80 and attempts increments.
+for (let i = 0; i < 60 && Entities.gameState.dying > 0; i++) Entities.update(0.016);
+check("level restarts after the beat", Entities.gameState.attempts === 4 && p2.x === 80,
+  "attempts=" + Entities.gameState.attempts + " x=" + Math.round(p2.x));
+// Percent progress exists.
+Entities.update(0.05);
+const pct = (p2.x / Entities.gameState.levelW) * 100;
+check("percent progress tracked", pct > 0 && pct <= 100, "pct=" + pct.toFixed(1));
+// ---------------- end of task block ----------------
+
 // ---- Task 5 wiring (kept essentials) ----
 check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
 Renderer.updateHUD();
