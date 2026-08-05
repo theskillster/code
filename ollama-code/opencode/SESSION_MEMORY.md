@@ -8,7 +8,7 @@
 
 ## 1. What this project is
 
-A tiny Flask app (`ollama-code/opencode/`) whose only real content is a playable
+A tiny Flask app (this repo) whose only real content is a playable
 **2D neon platformer, "Neon Runner"**, rendered on an HTML5 `<canvas>` with
 **vanilla JS** — no game engine, no frameworks, no audio/image assets.
 
@@ -87,9 +87,9 @@ Flow: beat Level 1 → "Next level ▶" → intro overlay → Level 2 → beat L
 
 ## 5. Verified live this session (all passed)
 
-- Page serves at `http://127.0.0.1:5010` (port 5000 is taken by ControlCe on
-  this machine — **use 5010**). Run with `PYTHONPATH=src .venv/bin/python -m
-  flask --app wsgi run --port 5010` from `ollama-code/opencode/`.
+- The page serves at `http://127.0.0.1:5000` by default. (This session used port
+  5010 because 5000 was busy on this machine.) Run with `uv run opencode`
+  from the project root.
 - Level 1 → flag → "Level 1 complete!" overlay → "Next level ▶" → Level 2 intro
   ("Level 2 — The Voltage Vault") → "Enter ▶" → Level 2 plays, score carries over.
 - Gate A blocks the player (stopped at x=2666, gate at 2700).

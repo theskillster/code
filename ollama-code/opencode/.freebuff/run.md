@@ -11,8 +11,9 @@ Python + vanilla ES-module JS.
 
 ## Run the dev server (one command)
 
+From the project root:
+
 ```sh
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
 uv run opencode --port 5000
 ```
 
@@ -21,14 +22,16 @@ uv run opencode --port 5000
 - The server uses **Waitress** (production WSGI) — reliable on macOS, where
   Flask's dev-server reloader crashes. `python wsgi.py` is equivalent.
 
-To run detached (survives shell exit), e.g. for a preview:
+To run detached (survives shell exit), e.g. for a preview — from the project
+root:
 
 ```sh
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
 screen -dmS opencode_preview bash -c \
-  'cd /Users/sajid/Documents/code/code/ollama-code/opencode && \
-   uv run opencode --port 5000 > .freebuff/preview.log 2>&1'
+  'uv run opencode --port 5000 > .freebuff/preview.log 2>&1'
 ```
+
+(The `screen` session inherits the current working directory, so no `cd` is
+needed.)
 
 Stop with: `screen -S opencode_preview -X quit`
 
@@ -36,5 +39,6 @@ Stop with: `screen -S opencode_preview -X quit`
 
 Open http://127.0.0.1:5000/static/tests/level3_smoke.html — every line must
 print PASS. The harness loads the six modules as ES modules against a stub DOM
-and asserts on real behavior (level geometry, darter AI, life hearts, BGM,
-win → level-3-intro flow).
+and asserts on real behavior (auto-run + fixed jump, instant-restart death
+loop with attempts, no-enemies level data, lethal block sides, jump-reachability
+BFS, beat-synced visual API, and the hold-jump beatability simulation).

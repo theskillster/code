@@ -45,19 +45,6 @@ your furthest run. Coins are optional collectibles.
 
 On touchscreens, one big **TAP** button appears automatically.
 
-### Controls
-
-| Action        | Keys                                  |
-| ------------- | ------------------------------------- |
-| Move left     | `←` or `A`                            |
-| Move right    | `→` or `D`                            |
-| Jump          | `Space`, `↑`, or `W` (hold = higher)  |
-| Pause         | `P` (or the ⏸ button)                 |
-| Restart       | `R`                                   |
-| Mute          | 🔊 button (remembered next visit)     |
-
-On touchscreens, on-screen ◀ ▶ ⬆ buttons appear automatically.
-
 ### Progress & attempts
 
 - You die in **one hit** — spikes and block sides kill. The level restarts instantly.

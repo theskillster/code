@@ -1158,7 +1158,7 @@ Navigate to `/static/tests/level3_smoke.html` — every line PASS. `preview_logs
 - [ ] **Step 4: Fresh-checkout sanity**
 
 ```bash
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
+# from the project root
 uv run ruff check .
 uv run opencode --port 5056 > /tmp/opencode-gd.log 2>&1 &
 sleep 3

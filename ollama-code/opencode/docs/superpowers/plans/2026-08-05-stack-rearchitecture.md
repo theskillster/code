@@ -111,7 +111,7 @@ In `src/opencode/templates/base.html`, replace the whole script block (currently
 
 - [ ] **Step 7: Verify the game still boots and plays in the preview**
 
-Start the server if needed (see `.freebuff/run.md`; currently `screen -dmS opencode_preview bash -c 'cd /Users/sajid/Documents/code/code/ollama-code/opencode && PYTHONPATH=src .venv/bin/python .freebuff/launch_server.py > .freebuff/preview.log 2>&1'`). Then:
+Start the server if needed (see `.freebuff/run.md`; run it from the project root, e.g. `uv run opencode --port 5000` in a screen session). Then:
 
 - `curl -s --max-time 3 -o /dev/null -w "%{http_code}" http://127.0.0.1:5000/` must print `200`.
 - `curl -s --max-time 3 http://127.0.0.1:5000/static/js/main.js` must print `200` and the body must start with `// OpenCode — Neon Runner`.
@@ -172,7 +172,7 @@ git commit -m "refactor: convert game modules to native ES modules"
 Run:
 
 ```bash
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
+# from the project root
 uv run opencode --port 5055 > /tmp/opencode-broken.log 2>&1 &
 sleep 2
 curl -s --max-time 3 -o /dev/null -w "%{http_code}" http://127.0.0.1:5055/
@@ -265,7 +265,7 @@ Python + vanilla ES-module JS.
 ## Run the dev server (one command)
 
 ```sh
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
+# from the project root
 uv run opencode --port 5000
 ```
 
@@ -277,10 +277,9 @@ uv run opencode --port 5000
 To run detached (survives shell exit), e.g. for a preview:
 
 ```sh
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
+# from the project root
 screen -dmS opencode_preview bash -c \
-  'cd /Users/sajid/Documents/code/code/ollama-code/opencode && \
-   uv run opencode --port 5000 > .freebuff/preview.log 2>&1'
+  'uv run opencode --port 5000 > .freebuff/preview.log 2>&1'
 ```
 
 Stop with: `screen -S opencode_preview -X quit`
@@ -296,7 +295,7 @@ win → level-3-intro flow).
 - [ ] **Step 7: Verify the one-command run path**
 
 ```bash
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
+# from the project root
 uv run opencode --port 5055 > /tmp/opencode-new.log 2>&1 &
 sleep 2
 curl -s --max-time 3 -o /dev/null -w "%{http_code}" http://127.0.0.1:5055/   # expect 200
@@ -487,7 +486,7 @@ uv run opencode --port 5000
 - [ ] **Step 8: Verify docs**
 
 ```bash
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
+# from the project root
 grep -n "1,412" README.md MODULES.md   # expect NO matches
 grep -n "two levels\|Both levels" README.md   # expect NO matches
 grep -n "type=\"module\"" MODULES.md src/opencode/templates/base.html   # expect matches
@@ -514,7 +513,7 @@ git commit -m "docs: reflect ES-module architecture and one-command run"
 - [ ] **Step 1: Fresh-from-scratch run**
 
 ```bash
-cd /Users/sajid/Documents/code/code/ollama-code/opencode
+# from the project root
 uv sync
 uv run ruff check .
 uv run opencode --port 5055 > /tmp/opencode-e2e.log 2>&1 &
