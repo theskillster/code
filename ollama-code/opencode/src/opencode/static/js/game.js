@@ -37,8 +37,8 @@ import { Renderer } from "./renderer.js";
   const LEVEL_COMPLETE_SECONDS = 2.0;
   // Per-level intro copy shown on the level-start overlay (level 2 onwards).
   const LEVEL_INTROS = {
-    2: "New hazards: flying volts, spike landings, faster patrollers,<br>and <strong>plasma turrets</strong> that track you with aimed bolts.<br>Locked gates only open when you find their key \u2014 score and lives carry over from Level 1.",
-    3: "The longest gauntlet yet \u2014 <strong>dashing darters</strong> charge in strafing bursts,<br>gates seal new routes, and spike pits grow wider.<br>Grab the <strong>life heart</strong> for an extra life \u2014 score and lives carry over.",
+    2: "Faster tempo, tighter jumps \u2014 <strong>spike rows</strong> and stacked block walls.<br>No enemies here: the level itself is the obstacle. Attempts carry over.",
+    3: "The final gauntlet \u2014 <strong>spike rows</strong> and staircase block towers.<br>Memorize the rhythm. Beat it to win the game.",
   };
   let overlayTimer = 0; // 0 = no auto-advance active
   let overlayTimerText = ""; // base overlay text the countdown is appended to
@@ -81,9 +81,8 @@ import { Renderer } from "./renderer.js";
     gameState.time = 0;
     L.build();
     gameState.levelW = L.width;
-    Levels.flag.x = L.flagX;
     gameState.totalCoins = Levels.coins.length;
-    gameState.CHECKPOINTS = L.checkpoints;
+    gameState.CHECKPOINTS = []; // GD: no checkpoints — death restarts from x=0
     gameState.theme = THEMES[n];
   }
 
@@ -131,7 +130,7 @@ import { Renderer } from "./renderer.js";
     gameState.state = "menu";
     sfx.level();
     const introText = LEVEL_INTROS[gameState.currentLevel] ||
-      "Level \u2014 score and lives carry over.";
+      "Level \u2014 hold to bounce, time your taps.";
     startOverlayCountdown(LEVEL_INTRO_SECONDS, introText, "Starting", enterLevel);
     showOverlay(
       `Level ${gameState.currentLevel} \u2014 ${LEVELS[gameState.currentLevel].name}`,
@@ -283,7 +282,7 @@ import { Renderer } from "./renderer.js";
   canvas.addEventListener("pointerdown", (e) => e.preventDefault());
 
   // --- Dev hook ---
-  window.__neon = { playLevel, loadLevel: loadLevel, start, player, enemies: Levels.enemies, projectiles: Levels.projectiles };
+  window.__neon = { playLevel, loadLevel: loadLevel, start, player, coins: Levels.coins, spikes: Levels.spikes };
 
   // --- Initialize ---
   // best is now a percent (0-100); clamp legacy score values from old versions.
@@ -293,7 +292,7 @@ import { Renderer } from "./renderer.js";
   resetPlayer();
   showOverlay(
     "Neon Runner",
-    "Collect coins, stomp baddies, and reach the flag!<br>Three levels of neon action \u2014 Level 2 adds flying volts and plasma turrets,<br>Level 3 is the longest gauntlet: dashing darters, sealed gates, and a life heart.<br>Touch-friendly controls light up on mobile.",
+    "Auto-run neon runner: tap to jump, hold to keep bouncing.<br>Touch a spike or a block's side and you restart \u2014 how far can you get?<br>Three levels \u00B7 no enemies \u00B7 pure rhythm.",
     "Start",
     start
   );

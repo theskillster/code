@@ -14,7 +14,7 @@ export const Entities = (() => {
   const { sfx } = Audio;
   const {
     GROUND_H, GROUND_Y, W, H,
-    platforms, coins, enemies, projectiles, spikes, keyItems, gates, lifePickups, flag,
+    platforms, coins, spikes, flag,
     LEVELS, THEMES, LEVEL_MAX_W,
   } = Levels;
 
@@ -152,6 +152,16 @@ export const Entities = (() => {
     player.facing = 1;
     player.x += player.vx * dt;
     player.x = Math.min(player.x, gs.levelW - player.w);
+    // A block whose side the auto-runner clips (before vertical resolves)
+    // must kill — GD rule. A player standing on the block's top (bottom
+    // within landing tolerance of the top) is safe — that's a landing.
+    for (const p of platforms) {
+      if (p.kind !== "block") continue;
+      if (overlap(player, p) && player.y + player.h > p.y + 8) {
+        if (_onHurt) _onHurt();
+        return;
+      }
+    }
   }
 
   // Jump: fixed-height (GD). Fires on ground contact while the jump input is
@@ -169,6 +179,8 @@ export const Entities = (() => {
   }
 
   // Vertical movement + Y collision with sub-stepping to prevent tunneling.
+  // GD rule: landing on a block's top is safe; hitting a block from the side
+  // or underside is death. Ground segments stay safe everywhere.
   function updateVertical(dt) {
     player.vy = Math.min(player.vy + GRAV * dt, MAX_FALL);
     player.onGround = false;
@@ -185,34 +197,17 @@ export const Entities = (() => {
             player.y = p.y - player.h;
             player.vy = 0;
             player.onGround = true;
-          } else if (stepDist < 0) {
+          } else if (p.kind === "block") {
+            // GD rule: hitting a block from the side or underside is death.
+            if (_onHurt) _onHurt();
+            return;
+          } else {
             player.y = p.y + p.h;
             player.vy = 0;
-          } else {
-            const mid = player.x + player.w / 2;
-            if (mid < p.x + p.w / 2) player.x = p.x - player.w;
-            else player.x = p.x + p.w;
           }
         }
       }
       if (player.vy === 0) break;
-    }
-  }
-
-  // Gates: solid walls until their key unlocks them.
-  function updateGates(dt) {
-    for (const g of gates) {
-      if (g.opened) continue;
-      if (overlap(player, g)) {
-        const mid = player.x + player.w / 2;
-        if (mid < g.x + g.w / 2) player.x = g.x - player.w;
-        else player.x = g.x + g.w;
-        player.vx = 0;
-      }
-    }
-    // Gate opening animation.
-    for (const g of gates) {
-      if (g.opened && g.opening < 1) g.opening = Math.min(1, g.opening + dt * 2.2);
     }
   }
 
@@ -227,136 +222,6 @@ export const Entities = (() => {
         sfx.coin();
         sparkle(c.x, c.y);
       }
-    }
-  }
-
-  // Keys: collectible, unlock matching gates.
-  function updateKeys() {
-    const gs = gameState;
-    for (const k of keyItems) {
-      if (!k.taken && circleRect(k.x, k.y, k.r, player)) {
-        k.taken = true;
-        gs.score += 100;
-        gs.keyCount++;
-        sfx.key();
-        burst(k.x, k.y, 14);
-        for (const g of gates) {
-          if (!g.opened && g.label === k.label) {
-            g.opened = true;
-            sfx.gate();
-          }
-        }
-      }
-    }
-  }
-
-  // Enemies: patrol, flyer bob, shooter aim/fire, stomp detection.
-  function updateEnemies(dt) {
-    const gs = gameState;
-    for (const e of enemies) {
-      if (!e.alive) continue;
-      e.x += e.dir * e.speed * dt;
-      if (e.x <= e.min) { e.x = e.min; e.dir = 1; }
-      if (e.x + e.w >= e.max) { e.x = e.max - e.w; e.dir = -1; }
-      if (e.kind === "flyer") {
-        e.y = e.baseY + Math.sin(gs.animTime * e.bobSpeed + e.phase) * e.amp;
-      } else if (e.kind === "shooter") {
-        e.cooldown -= dt;
-        const ecx = e.x + e.w / 2, ecy = e.y + e.h / 2;
-        const pcx = player.x + player.w / 2, pcy = player.y + player.h / 2;
-        e.aim = Math.atan2(pcy - ecy, pcx - ecx);
-        if (Math.abs(pcx - ecx) < 760 && Math.abs(pcy - ecy) < 280 && e.cooldown <= 0) {
-          e.cooldown = e.interval;
-          const bx = ecx + Math.cos(e.aim) * 28, by = ecy + Math.sin(e.aim) * 28;
-          projectiles.push({ x: bx, y: by, vx: Math.cos(e.aim) * e.boltSpeed, vy: Math.sin(e.aim) * e.boltSpeed, r: 7, life: 2.6, t: 0 });
-          sfx.shoot();
-          burst(bx, by, 3);
-        }
-      }
-      if (e.kind === "darter") {
-        // State machine: wait -> windup (amber telegraph) -> dash -> wait.
-        const ecx = e.x + e.w / 2;
-        const pcx = player.x + player.w / 2;
-        if (e.state === "wait") {
-          // Only act when the player is near: face them and wind up the
-          // dash timer. Idle darters far away never waste a dash.
-          if (Math.abs(pcx - ecx) < 520) {
-            e.dir = pcx >= ecx ? 1 : -1;
-            e.timer -= dt;
-            if (e.timer <= 0) { e.state = "windup"; e.timer = 0.3; }
-          }
-        } else if (e.state === "windup") {
-          e.timer -= dt;
-          if (e.timer <= 0) { e.state = "dash"; e.timer = e.dashDist; }
-        } else {
-          const move = e.dir * e.dashSpeed * dt;
-          const nx = Math.max(e.min, Math.min(e.max - e.w, e.x + move));
-          if (nx === e.x) { e.state = "wait"; e.timer = e.waitTime; }
-          else {
-            e.timer -= Math.abs(move);
-            e.x = nx;
-            if (e.timer <= 0) { e.state = "wait"; e.timer = e.waitTime; }
-          }
-        }
-        if (player.invuln > 0) continue;
-        if (overlap(player, e)) {
-          // Stompable only while waiting — a dashing darter always hurts.
-          const stompable = e.state === "wait";
-          const stomping = player.vy > 120 && player.y + player.h - e.y < e.h * 0.7;
-          if (stompable && stomping) {
-            e.alive = false;
-            player.vy = -JUMP_V * 0.62;
-            gs.score += 50;
-            sfx.stomp();
-            burst(e.x + e.w / 2, e.y + e.h / 2, 12);
-          } else {
-            if (_onHurt) _onHurt();
-          }
-        }
-        continue;
-      }
-      if (player.invuln > 0) continue;
-      if (overlap(player, e)) {
-        const stomping = player.vy > 120 && player.y + player.h - e.y < e.h * 0.7;
-        if (stomping) {
-          e.alive = false;
-          player.vy = -JUMP_V * 0.62;
-          gs.score += 50;
-          sfx.stomp();
-          burst(e.x + e.w / 2, e.y + e.h / 2, 12);
-        } else {
-          if (_onHurt) _onHurt();
-        }
-      }
-    }
-  }
-
-  // Projectiles: shooter bolts — fly, bounce off walls, hurt on contact.
-  function updateProjectiles(dt) {
-    const gs = gameState;
-    for (let i = projectiles.length - 1; i >= 0; i--) {
-      const p = projectiles[i];
-      p.t += dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      let dead = p.t >= p.life || p.x < -40 || p.x > gs.levelW + 40 || p.y < -40 || p.y > H + 40;
-      if (!dead) {
-        const pr = { x: p.x - p.r, y: p.y - p.r, w: p.r * 2, h: p.r * 2 };
-        for (const pl of platforms) { if (overlap(pr, pl)) { dead = true; break; } }
-        if (!dead) { for (const g of gates) { if (!g.opened && overlap(pr, g)) { dead = true; break; } } }
-      }
-      if (!dead && player.invuln <= 0 && circleRect(p.x, p.y, p.r, player)) {
-        const stomping = player.vy > 120 && player.y + player.h < p.y + p.r + 6;
-        if (stomping) {
-          player.vy = -JUMP_V * 0.45;
-          gs.score += 10;
-          sfx.stomp();
-        } else {
-          if (_onHurt) _onHurt();
-        }
-        dead = true;
-      }
-      if (dead) { burst(p.x, p.y, 5); projectiles.splice(i, 1); }
     }
   }
 
@@ -413,12 +278,8 @@ export const Entities = (() => {
     updateMovement(dt);
     updateJump(dt);
     updateVertical(dt);
-    updateGates(dt);
     updateRunAnim(dt);
     updateCoins();
-    updateKeys();
-    updateEnemies(dt);
-    updateProjectiles(dt);
     updateSpikes();
     updateBoundaries();
     updateCheckpoints();

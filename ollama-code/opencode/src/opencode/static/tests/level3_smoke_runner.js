@@ -16,15 +16,8 @@ function check(name, cond, detail) {
   log((cond ? "PASS  " : "FAIL  ") + name + (detail ? "  (" + detail + ")" : ""));
 }
 
-// ---- Task 1: level data (replaced by Task 4 layouts later) ----
-check("LEVELS[3] exists", !!Levels.LEVELS[3], Levels.LEVELS[3] && Levels.LEVELS[3].name);
-check("LEVELS[3].width is 6200", Levels.LEVELS[3] && Levels.LEVELS[3].width === 6200, Levels.LEVELS[3] && Levels.LEVELS[3].width);
-check("LEVEL_MAX_W is 6400", Levels.LEVEL_MAX_W === 6400, Levels.LEVEL_MAX_W);
-check("THEMES[3] exists", !!Levels.THEMES[3]);
-window.__neon.loadLevel(3);
-check("loadLevel(3) builds without throwing", Entities.gameState.currentLevel === 3);
-
 // ---- Task 1: auto-run + jump ----
+check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
 window.__neon.loadLevel(1);
 const p1 = Entities.player;
 p1.x = 80; p1.y = Levels.GROUND_Y - 46; p1.vy = 0; p1.vx = 0; p1.onGround = true;
@@ -49,62 +42,6 @@ Entities.update(0.016);
 check("cube spins in the air", p1.angle !== a0, a0 + " -> " + p1.angle.toFixed(1));
 // ---------------- end of task block ----------------
 
-// Reachability: every surface must be reachable from the start by running
-// jumps (uses the real physics constants).
-const { GRAV, JUMP_V, AUTO_SPEED } = Entities;
-const maxRise = (JUMP_V * JUMP_V) / (2 * GRAV);
-const timeToHeight = (h) => (JUMP_V + Math.sqrt(JUMP_V * JUMP_V - 2 * GRAV * h)) / GRAV;
-const airtime = (dy) => (dy < 0 ? timeToHeight(-dy) : JUMP_V / GRAV + Math.sqrt((2 * (maxRise + dy)) / GRAV));
-const surfs = Levels.platforms.slice().sort((a, b) => a.x - b.x);
-const reach = new Set([0]);
-let changed = true;
-while (changed) {
-  changed = false;
-  for (let i = 0; i < surfs.length; i++) {
-    if (!reach.has(i)) continue;
-    const A = surfs[i];
-    for (let j = 0; j < surfs.length; j++) {
-      if (reach.has(j) || surfs[j].x < A.x) continue;
-      const dy = surfs[j].y - A.y;
-      if (dy < 0 && -dy > maxRise + 1) continue;
-      if (surfs[j].x <= A.x + A.w + AUTO_SPEED * airtime(dy) - 8) {
-        reach.add(j);
-        changed = true;
-      }
-    }
-  }
-}
-// The BFS is meaningful for GD-style layouts (ground/block/spike/coin only).
-// Legacy scenes with `plat` platforms are replaced by the Task 4 layouts, so
-// skip the check while they exist (their plats are unreachable by design).
-const hasLegacyPlats = Levels.platforms.some((p) => p.kind === "plat");
-if (hasLegacyPlats) {
-  check("reachability BFS deferred to GD layouts", true, "legacy plat scene");
-} else {
-  const surfs = Levels.platforms.slice().sort((a, b) => a.x - b.x);
-  const reach = new Set([0]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (let i = 0; i < surfs.length; i++) {
-      if (!reach.has(i)) continue;
-      const A = surfs[i];
-      for (let j = 0; j < surfs.length; j++) {
-        if (reach.has(j) || surfs[j].x < A.x) continue;
-        const dy = surfs[j].y - A.y;
-        if (dy < 0 && -dy > maxRise + 1) continue;
-        if (surfs[j].x <= A.x + A.w + AUTO_SPEED * airtime(dy) - 8) {
-          reach.add(j);
-          changed = true;
-        }
-      }
-    }
-  }
-  const unreachable = surfs.filter((s, i) => !reach.has(i));
-  check("every surface is reachable (jump BFS)", unreachable.length === 0,
-    unreachable.map((s) => s.kind + "@" + s.x).join(","));
-}
-
 // ---- Task 2: death = instant restart ----
 window.__neon.loadLevel(1);
 const p2 = Entities.player;
@@ -125,8 +62,71 @@ const pct = (p2.x / Entities.gameState.levelW) * 100;
 check("percent progress tracked", pct > 0 && pct <= 100, "pct=" + pct.toFixed(1));
 // ---------------- end of task block ----------------
 
+// ---- Task 3: no enemies, blocks exist ----
+check("no enemies array", !Levels.enemies);
+check("no keys/gates/life hearts", !Levels.keyItems && !Levels.gates && !Levels.lifePickups);
+window.__neon.loadLevel(3);
+const hasBlock = Levels.platforms.some((p) => p.kind === "block");
+check("level 3 has blocks", hasBlock, "blocks=" + Levels.platforms.filter((p) => p.kind === "block").length);
+// Landing on a block top is safe.
+const b0 = Levels.platforms.find((p) => p.kind === "block");
+const p3 = Entities.player;
+Input.keys.jump = false; // don't bounce off the block — just land
+p3.x = b0.x + 5; p3.y = b0.y - 46; p3.vy = 0; p3.invuln = 0;
+Entities.gameState.dying = 0;
+Entities.update(0.016);
+check("landing on a block top is safe", Entities.gameState.dying === 0 && p3.onGround);
+// ---------------- end of task block ----------------
+
+// ---- Task 4: new level data + block side lethal ----
+check("LEVELS[1].width is 4800", Levels.LEVELS[1] && Levels.LEVELS[1].width === 4800, Levels.LEVELS[1] && Levels.LEVELS[1].width);
+check("LEVELS[2].width is 5100", Levels.LEVELS[2] && Levels.LEVELS[2].width === 5100, Levels.LEVELS[2] && Levels.LEVELS[2].width);
+check("LEVELS[3].width is 6200", Levels.LEVELS[3] && Levels.LEVELS[3].width === 6200, Levels.LEVELS[3] && Levels.LEVELS[3].width);
+window.__neon.loadLevel(1);
+check("level 1 builds without enemies", Levels.platforms.every((p) => p.kind !== "enemy"));
+check("no enemy draw calls remain", typeof Renderer.drawEnemy === "undefined");
+window.__neon.loadLevel(3);
+const p4 = Entities.player;
+const wall = Levels.platforms.find((p) => p.kind === "block");
+p4.x = wall.x - 20; p4.y = Levels.GROUND_Y - 46; p4.vy = 0; p4.vx = 0; p4.onGround = true; p4.invuln = 0;
+Entities.gameState.dying = 0;
+for (let i = 0; i < 30 && Entities.gameState.dying === 0; i++) Entities.update(0.016);
+check("hitting a block side kills", Entities.gameState.dying > 0, "dying=" + Entities.gameState.dying);
+// ---------------- end of task block ----------------
+
+// Reachability BFS: every surface in each new level must be reachable from the
+// start by running jumps (uses the real physics constants).
+const { GRAV, JUMP_V, AUTO_SPEED } = Entities;
+const maxRise = (JUMP_V * JUMP_V) / (2 * GRAV);
+const timeToHeight = (h) => (JUMP_V + Math.sqrt(JUMP_V * JUMP_V - 2 * GRAV * h)) / GRAV;
+const airtime = (dy) => (dy < 0 ? timeToHeight(-dy) : JUMP_V / GRAV + Math.sqrt((2 * (maxRise + dy)) / GRAV));
+for (const lvl of [1, 2, 3]) {
+  window.__neon.loadLevel(lvl);
+  const surfs = Levels.platforms.slice().sort((a, b) => a.x - b.x);
+  const reach = new Set([0]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = 0; i < surfs.length; i++) {
+      if (!reach.has(i)) continue;
+      const A = surfs[i];
+      for (let j = 0; j < surfs.length; j++) {
+        if (reach.has(j) || surfs[j].x < A.x) continue;
+        const dy = surfs[j].y - A.y;
+        if (dy < 0 && -dy > maxRise + 1) continue;
+        if (surfs[j].x <= A.x + A.w + AUTO_SPEED * airtime(dy) - 8) {
+          reach.add(j);
+          changed = true;
+        }
+      }
+    }
+  }
+  const unreachable = surfs.filter((s, i) => !reach.has(i));
+  check("level " + lvl + " every surface reachable (BFS)", unreachable.length === 0,
+    unreachable.map((s) => s.kind + "@" + s.x).join(","));
+}
+
 // ---- Task 5 wiring (kept essentials) ----
-check("totalLevels is 3", Entities.gameState.totalLevels === 3, Entities.gameState.totalLevels);
 Renderer.updateHUD();
 check("badge shows a level name", document.getElementById("level-name-badge").textContent.length > 0,
   document.getElementById("level-name-badge").textContent);

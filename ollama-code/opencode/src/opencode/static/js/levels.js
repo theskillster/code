@@ -12,80 +12,19 @@ export const Levels = (() => {
   const GROUND_H = 60;
   const GROUND_Y = H - GROUND_H;
   const LEVEL_MAX_W = 6400;
+  const TILE = 48;
 
   // Scene arrays (populated by loadLevel in game.js).
   const platforms = [];
   const coins = [];
-  const enemies = [];
-  const projectiles = [];
   const spikes = [];
-  const keyItems = [];
-  const gates = [];
-  const lifePickups = [];
   const flag = { x: 0 };
 
   // --- Level builder helpers ---
   const ground = (x, w) => platforms.push({ x, y: GROUND_Y, w, h: GROUND_H, kind: "ground" });
-  const plat = (x, y, w, h = 26) => platforms.push({ x, y, w, h, kind: "plat" });
+  const block = (x, y, w = 48, h = 48) => platforms.push({ x, y, w, h, kind: "block" });
   const coin = (x, y) => coins.push({ x, y, r: 11, taken: false });
-  const enemy = (x, min, max, speed = 72) =>
-    enemies.push({ x, y: GROUND_Y - 40, w: 44, h: 40, min, max, dir: 1, speed, alive: true, kind: "walker" });
-  const flyer = (x, min, max, baseY, amp, bobSpeed, phase = 0) =>
-    enemies.push({
-      x,
-      y: baseY,
-      w: 34,
-      h: 26,
-      min,
-      max,
-      dir: 1,
-      speed: 36,
-      alive: true,
-      kind: "flyer",
-      baseY,
-      amp,
-      bobSpeed,
-      phase,
-    });
-  const shooter = (x, min, max, interval = 2.4, boltSpeed = 310, cooldown = 1.3) =>
-    enemies.push({
-      x,
-      y: GROUND_Y - 34,
-      w: 40,
-      h: 34,
-      min,
-      max,
-      dir: 1,
-      speed: 0,
-      alive: true,
-      kind: "shooter",
-      interval,
-      boltSpeed,
-      cooldown,
-      aim: 0,
-    });
   const spike = (x, w = 48) => spikes.push({ x, y: GROUND_Y - 16, w, h: 16 });
-  const darter = (x, min, max, wait = 1.2, dashDist = 260, dashSpeed = 460) =>
-    enemies.push({
-      x,
-      y: GROUND_Y - 34,
-      w: 40,
-      h: 34,
-      min,
-      max,
-      dir: 1,
-      speed: 0,
-      alive: true,
-      kind: "darter",
-      state: "wait",
-      timer: wait,
-      waitTime: wait,
-      dashDist,
-      dashSpeed,
-    });
-  const key = (x, y, label) => keyItems.push({ x, y, r: 12, label, taken: false });
-  const gate = (x, h, label) => gates.push({ x, y: GROUND_Y - h, w: 14, h, label, opened: false, opening: 0 });
-  const lifePickup = (x, y) => lifePickups.push({ x, y, r: 13, taken: false });
   const coinArc = (cx, cy, n) => {
     for (let i = 0; i < n; i++) coin(cx + i * 34, cy - Math.sin((i / (n - 1)) * Math.PI) * 46);
   };
@@ -100,6 +39,8 @@ export const Levels = (() => {
     groundTop: "#1f2a44",
     groundBody: "#33455f",
     groundGlow: "rgba(34,211,238,0.18)",
+    blockBody: "#1e293b",
+    blockEdge: "#22d3ee",
     platBody: "#0d9488",
     platTop: "#5eead4",
     flag: "#38bdf8",
@@ -144,198 +85,184 @@ export const Levels = (() => {
   };
 
   // --- Level definitions ---
+  // GD-style layouts. Ground is continuous (no pits — the floor is the safe
+  // zone, like GD), and every hazard sits mid-arc on the hold-cadence landing
+  // grid: in-game landings occur at x ≈ 86 + 204k (measured live), so hazards
+  // are placed near the midpoint of each arc, clear of both take-off and
+  // touchdown. Blocks are jump-over hazards (never landed on): a block whose
+  // face the runner clips kills. Levels ramp from singles (1) to doubles (3).
   const LEVELS = {
     1: {
       name: "Neon Meadows",
-      width: 5120,
-      flagX: 4860,
-      checkpoints: [500, 1000, 1500, 2100, 2700, 3300, 4000, 4700],
+      width: 4800,
       build() {
-        ground(0, 620);
-        plat(680, 420, 130);
-        ground(800, 420);
-        coinArc(690, 400, 3);
-
-        coinArc(1250, 330, 3);
-        plat(1260, 360, 120);
-        ground(1380, 480);
-        coin(1300, 340);
-        coin(1335, 320);
-        coin(1370, 340);
-        spike(1660, 46);
-
-        ground(1980, 520);
-        plat(2140, 380, 120);
-        coinArc(2150, 360, 3);
-
-        ground(2620, 520);
-        plat(2520, 350, 110);
-        coin(2530, 330);
-        coin(2575, 310);
-        plat(2700, 400, 130);
-        coinArc(2710, 380, 3);
-        spike(2840, 44);
-
-        ground(3260, 560);
-        plat(3400, 370, 120);
-        coinArc(3410, 350, 3);
-        spike(3520, 44);
-
-        ground(3940, 600);
-        plat(4020, 350, 120);
-        coinArc(4030, 330, 3);
-        spike(4420, 50);
-
-        ground(4660, 460);
-        coinArc(4680, 420, 3);
-        coinArc(4780, 380, 4);
-
-        enemy(350, 120, 580, 60);
-        enemy(1050, 830, 1180, 75);
-        enemy(1520, 1450, 1610, 65);
-        enemy(2350, 2040, 2460, 80);
-        enemy(2920, 2700, 2810, 70);
-        enemy(3450, 3320, 3500, 70);
-        enemy(4300, 4000, 4390, 72);
+        ground(0, 4800);
+        spike(392);
+        coinArc(420, 400, 3);
+        block(596, GROUND_Y - 48);
+        coin(620, GROUND_Y - 96);
+        spike(800);
+        coinArc(830, 400, 3);
+        spike(1208);
+        coinArc(1240, 400, 3);
+        block(1412, GROUND_Y - 48);
+        coin(1436, GROUND_Y - 96);
+        spike(1616);
+        coinArc(1650, 400, 3);
+        block(1820, GROUND_Y - 48);
+        coin(1844, GROUND_Y - 96);
+        spike(2024);
+        coinArc(2050, 400, 3);
+        block(2228, GROUND_Y - 48);
+        coin(2252, GROUND_Y - 96);
+        spike(2432);
+        coinArc(2470, 400, 3);
+        spike(2636);
+        coinArc(2670, 400, 3);
+        block(2840, GROUND_Y - 48);
+        coin(2864, GROUND_Y - 96);
+        spike(3044);
+        coinArc(3070, 400, 3);
+        block(3248, GROUND_Y - 48);
+        coin(3272, GROUND_Y - 96);
+        spike(3452);
+        coinArc(3480, 400, 3);
+        block(3656, GROUND_Y - 48);
+        coin(3680, GROUND_Y - 96);
+        spike(3860);
+        coinArc(3890, 400, 3);
+        block(4064, GROUND_Y - 48);
+        coin(4088, GROUND_Y - 96);
+        spike(4268);
+        coinArc(4300, 400, 3);
+        spike(4472);
+        coinArc(4500, 400, 3);
+        block(4676, GROUND_Y - 48);
+        coin(4700, GROUND_Y - 96);
       },
     },
     2: {
       name: "The Voltage Vault",
-      width: 4600,
-      flagX: 4480,
-      checkpoints: [430, 950, 1660, 2120, 2560, 3000, 3520, 4300],
+      width: 5100,
       build() {
-        ground(0, 470);
-        plat(520, 400, 110);
-        plat(660, 330, 110);
-        coinArc(670, 310, 3);
-
-        ground(900, 380);
-        spike(990, 44);
-        coinArc(950, 430, 3);
-        enemy(1080, 920, 1240, 95);
-
-        plat(1330, 380, 110);
-        coin(1340, 360);
-        coin(1380, 340);
-
-        ground(1540, 360);
-        spike(1630, 44);
-        shooter(1680, 1590, 1820, 2.6, 320);
-        flyer(1910, 1905, 1995, 390, 40, 2.0, 0);
-
-        ground(2000, 400);
-        spike(2100, 44);
-        enemy(2160, 2050, 2340, 100);
-        coin(2280, 430);
-
-        ground(2520, 300);
-        plat(2530, 350, 90);
-        key(2575, 330, "A");
-        flyer(2545, 2530, 2620, 300, 35, 1.6, 2);
-        gate(2700, 300, "A");
-        coin(2660, 430);
-
-        ground(2900, 420);
-        spike(2990, 44);
-        enemy(3060, 2960, 3260, 105);
-        coinArc(3100, 400, 3);
-
-        plat(3340, 370, 120);
-        coinArc(3350, 350, 3);
-
-        ground(3460, 320);
-        plat(3470, 370, 100);
-        key(3520, 350, "B");
-        flyer(3490, 3470, 3570, 320, 35, 1.7, 4);
-        shooter(3490, 3410, 3580, 2.4, 300);
-        gate(3600, 300, "B");
-        spike(3680, 44);
-        coin(3700, 430);
-
-        plat(3820, 400, 110);
-        plat(3960, 340, 100);
-        coinArc(3830, 380, 3);
-        coin(3970, 320);
-
-        ground(4120, 480);
-        spike(4250, 50);
-        enemy(4330, 4300, 4420, 110);
-        coinArc(4360, 420, 3);
-        coinArc(4440, 380, 4);
+        ground(0, 5100);
+        spike(392);
+        coinArc(420, 400, 3);
+        block(596, GROUND_Y - 48);
+        coin(620, GROUND_Y - 96);
+        spike(800);
+        coinArc(830, 400, 3);
+        block(1004, GROUND_Y - 48);
+        coin(1028, GROUND_Y - 96);
+        spike(1208);
+        coinArc(1240, 400, 3);
+        block(1412, GROUND_Y - 48);
+        coin(1436, GROUND_Y - 96);
+        spike(1616);
+        coinArc(1650, 400, 3);
+        block(1820, GROUND_Y - 48);
+        coin(1844, GROUND_Y - 96);
+        spike(2024);
+        coinArc(2050, 400, 3);
+        block(2228, GROUND_Y - 48);
+        coin(2252, GROUND_Y - 96);
+        spike(2432);
+        coinArc(2470, 400, 3);
+        block(2636, GROUND_Y - 48);
+        coin(2660, GROUND_Y - 96);
+        spike(2840);
+        coinArc(2870, 400, 3);
+        block(3044, GROUND_Y - 48);
+        coin(3068, GROUND_Y - 96);
+        spike(3248);
+        coinArc(3270, 400, 3);
+        block(3452, GROUND_Y - 48);
+        coin(3476, GROUND_Y - 96);
+        spike(3656);
+        coinArc(3680, 400, 3);
+        block(3860, GROUND_Y - 48);
+        coin(3884, GROUND_Y - 96);
+        spike(4064);
+        coinArc(4090, 400, 3);
+        block(4268, GROUND_Y - 48);
+        coin(4292, GROUND_Y - 96);
+        spike(4472);
+        coinArc(4500, 400, 3);
+        block(4676, GROUND_Y - 48);
+        coin(4700, GROUND_Y - 96);
+        spike(4880);
+        coinArc(4910, 400, 3);
       },
     },
     3: {
       name: "Sunflare Ridge",
       width: 6200,
-      flagX: 6060,
-      checkpoints: [500, 1150, 1800, 2450, 3100, 3700, 4300, 4900, 5500],
       build() {
-        // Start: first darter teaches dash-and-dodge (darter added in Task 2).
-        ground(0, 720);
-        coinArc(640, 440, 3);
-
-        // First high platforms; the life heart sits on the second one.
-        plat(800, 420, 130);
-        coinArc(840, 400, 3);
-        plat(1080, 330, 110);
-        ground(1150, 420);
-        coinArc(1260, 400, 3);
-
-        // Gate A.
-        ground(1650, 520);
-        spike(1750, 50);
-        coinArc(1700, 440, 3);
-        coin(2060, 440);
-        key(2100, 380, "A");
-        gate(2140, 320, "A");
-
-        ground(2300, 460);
-        plat(2380, 360, 120);
-        coinArc(2390, 340, 3);
-        spike(2500, 50);
-
-        ground(2880, 420);
-        coinArc(3060, 440, 3);
-        plat(3140, 380, 110);
-        coinArc(3150, 360, 3);
-        spike(3240, 50);
-
-        // Gate B.
-        ground(3440, 440);
-        coin(3720, 440);
-        key(3760, 380, "B");
-        gate(3800, 320, "B");
-
-        ground(3980, 460);
-        plat(4060, 380, 110);
-        coinArc(4070, 360, 3);
-        spike(4200, 50);
-
-        ground(4580, 420);
-        coinArc(4740, 440, 3);
-        plat(4840, 370, 110);
-        coinArc(4850, 350, 3);
-        spike(4940, 50);
-
-        ground(5160, 460);
-        coinArc(5240, 440, 4);
-        lifePickup(5520, 450);   // ground level, final stretch
-
-        ground(5760, 440);
-        coinArc(5840, 440, 3);
-        coinArc(5940, 400, 3);
-
-        lifePickup(1130, 310);   // on plat(1080, 330, 110)
-
-        darter(420, 200, 500, 1.1, 260, 470);            // start — teaches the dash
-        darter(1950, 1800, 2030, 1.2, 280, 480);         // before gate A
-        darter(3560, 3400, 3630, 1.3, 300, 490);         // before gate B
-        darter(5280, 5140, 5420, 1.2, 300, 480);         // final stretch
-        flyer(2630, 2600, 2700, 350, 40, 2.0, 1);        // mid-section bobber
-        shooter(3020, 2940, 3100, 2.6, 320);             // aimed bolts
-        flyer(4320, 4280, 4400, 340, 40, 1.8, 3);        // second bobber
-        shooter(4700, 4640, 4840, 2.4, 320);             // second turret
+        ground(0, 6200);
+        spike(392);
+        coinArc(420, 400, 3);
+        block(596, GROUND_Y - 48);
+        coin(620, GROUND_Y - 96);
+        spike(800);
+        spike(848);
+        coinArc(880, 400, 3);
+        block(1004, GROUND_Y - 48);
+        coin(1028, GROUND_Y - 96);
+        spike(1208);
+        coinArc(1240, 400, 3);
+        block(1412, GROUND_Y - 48);
+        coin(1436, GROUND_Y - 96);
+        spike(1616);
+        spike(1664);
+        coinArc(1690, 400, 3);
+        block(1820, GROUND_Y - 48);
+        coin(1844, GROUND_Y - 96);
+        spike(2024);
+        coinArc(2050, 400, 3);
+        block(2228, GROUND_Y - 48);
+        coin(2252, GROUND_Y - 96);
+        spike(2432);
+        spike(2480);
+        coinArc(2500, 400, 3);
+        block(2636, GROUND_Y - 48);
+        coin(2660, GROUND_Y - 96);
+        spike(2840);
+        coinArc(2870, 400, 3);
+        block(3044, GROUND_Y - 48);
+        coin(3068, GROUND_Y - 96);
+        spike(3248);
+        spike(3296);
+        coinArc(3320, 400, 3);
+        block(3452, GROUND_Y - 48);
+        coin(3476, GROUND_Y - 96);
+        spike(3656);
+        coinArc(3680, 400, 3);
+        block(3860, GROUND_Y - 48);
+        coin(3884, GROUND_Y - 96);
+        spike(4064);
+        spike(4112);
+        coinArc(4140, 400, 3);
+        block(4268, GROUND_Y - 48);
+        coin(4292, GROUND_Y - 96);
+        spike(4472);
+        coinArc(4500, 400, 3);
+        block(4676, GROUND_Y - 48);
+        coin(4700, GROUND_Y - 96);
+        spike(4880);
+        spike(4928);
+        coinArc(4950, 400, 3);
+        block(5084, GROUND_Y - 48);
+        coin(5108, GROUND_Y - 96);
+        spike(5288);
+        coinArc(5310, 400, 3);
+        block(5492, GROUND_Y - 48);
+        coin(5516, GROUND_Y - 96);
+        spike(5696);
+        coinArc(5720, 400, 3);
+        block(5900, GROUND_Y - 48);
+        coin(5924, GROUND_Y - 96);
+        spike(6104);
+        coinArc(6130, 400, 3);
       },
     },
   };
@@ -374,17 +301,12 @@ export const Levels = (() => {
   function clearScene() {
     platforms.length = 0;
     coins.length = 0;
-    enemies.length = 0;
-    projectiles.length = 0;
     spikes.length = 0;
-    keyItems.length = 0;
-    gates.length = 0;
-    lifePickups.length = 0;
   }
 
   return {
-    GROUND_H, GROUND_Y, LEVEL_MAX_W, W, H,
-    platforms, coins, enemies, projectiles, spikes, keyItems, gates, lifePickups, flag,
+    GROUND_H, GROUND_Y, LEVEL_MAX_W, W, H, TILE,
+    platforms, coins, spikes, flag,
     stars, clouds,
     THEMES, LEVELS,
     clearScene, coinArc,
