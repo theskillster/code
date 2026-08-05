@@ -1,0 +1,12 @@
+# Freebuff desktop runtime artifacts — not source, never commit.
+# SQLite session/conversation databases and preview server logs change on
+# every run; they belong to the local machine, not the repo.
+**/.freebuff/desktop-v2.db
+**/.freebuff/desktop-v2.db-shm
+**/.freebuff/desktop-v2.db-wal
+**/.freebuff/preview*.log
+**/.freebuff/preview-*.log
+
+# Python
+__pycache__/
+*.pyc
